@@ -50,9 +50,9 @@ export default function Sidebar() {
           <span>Dashboard</span>
         </Link>
         <Link
-          href="/data-peserta"
-          aria-current={pathname === '/data-peserta' ? 'page' : undefined}
-          className={`relative flex text-lg font-heading font-semibold items-center gap-3 py-2 px-3 rounded-[10px] transition-colors ${pathname === '/data-peserta'
+          href="/dashboard-admin/data-peserta"
+          aria-current={pathname === '/dashboard-admin/data-peserta' ? 'page' : undefined}
+          className={`relative flex text-lg font-heading font-semibold items-center gap-3 py-2 px-3 rounded-[10px] transition-colors ${pathname === '/dashboard-admin/data-peserta'
             ? 'bg-[#41366E] text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-sm before:bg-[#41366E]'
             : 'text-[#41366E] hover:bg-[#41366E] hover:text-white'
             }`}

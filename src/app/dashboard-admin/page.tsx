@@ -30,11 +30,13 @@ export default function DashboardPage() {
 
                 {/* Komponen Statistik Peserta biar tinggal panggil euy */}
                 <StatistikPeserta />
-                
+
                 <hr className="my-8 border-black" />
+                
                 <div className=''>
                     <span className='text-2xl text-black font-heading font-medium'>Statistik Ujian</span>
                 </div>
+                
                 <div className='pt-5 grid grid-cols-1 md:grid-cols-3 gap-4'>
                     <Card className="bg-white py-4 px-8 shadow-md rounded-lg">
                         <div className="flex items-center justify-between">
@@ -58,6 +60,7 @@ export default function DashboardPage() {
                         </div>
                     </Card>
                 </div>
+                
                 <div className='pt-5 grid grid-cols-1 md:grid-cols-1 gap-4 font-heading'>
                     <Card className='bg-white p-8 shadow-md'>
                         <div className="border border-[#E4E4E4] rounded-lg overflow-hidden">
