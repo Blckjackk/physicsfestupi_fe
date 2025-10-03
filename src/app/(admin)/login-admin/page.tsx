@@ -82,8 +82,8 @@ export default function LoginAdminPage() {
           setAlert({
             isOpen: true,
             type: "success",
-            title: "Berhasil!",
-            message: "Login berhasil! Anda akan diarahkan ke dashboard admin.",
+            title: "Berhasil",
+            message: "Anda akan diarahkan ke dashboard admin.",
             primaryButtonText: "Lanjut",
             secondaryButtonText: "Kembali",
             onPrimaryClick: () => {

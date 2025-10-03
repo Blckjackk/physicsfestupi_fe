@@ -141,13 +141,8 @@ export default function AlertModal({
           </div>
         </div>
 
-        {/* Alert Type Label */}
-        <div className="mb-2 text-center font-heading text-[20px] font-bold uppercase tracking-wide text-gray-800">
-          {type}
-        </div>
-
         {/* Title */}
-        <h2 id="alert-title" className="mb-2 text-center font-heading text-[22px] font-semibold text-gray-900">
+        <h2 id="alert-title" className="mb-4 text-center font-heading text-[22px] font-semibold text-gray-900">
           {title}
         </h2>
 
