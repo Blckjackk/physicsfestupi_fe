@@ -22,5 +22,8 @@ h1,
 h2,
 h3 {
   font-family: var(--font-heading), "Poppins", "Inter", system-ui, sans-serif;
-  color: var(--white);
+}
+
+p {
+  font-family: var(--font-heading), "Poppins", "Inter", system-ui, sans-serif;
 }

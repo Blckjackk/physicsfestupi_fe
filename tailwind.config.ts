@@ -6,6 +6,7 @@ const config: Config = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -20,6 +21,9 @@ const config: Config = {
         "purple-2": "var(--purple-2)",
         "purple-3": "var(--purple-3)",
         "green-button": "var(--green-button)",
+        "primary-purple": '#41366E',
+        // Bedul
+
       },
     },
   },
