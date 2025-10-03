@@ -9,6 +9,7 @@ import QuestionCard from '@/components/exam/QuestionCard';
 import QuestionNavigation from '@/components/exam/QuestionNavigation';
 import AlertModal from '@/components/ui/alert-modal';
 import ExamConfirmModal from '@/components/exam/ExamConfirmModal';
+import LogoutConfirmModal from '@/components/exam/LogoutConfirmModal';
 
 // Mock data untuk soal-soal
 const mockQuestions = [
@@ -94,6 +95,9 @@ export default function ExamPage() {
 
   // Exam confirm modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Logout confirm modal state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Timer countdown
   useEffect(() => {
@@ -200,12 +204,16 @@ export default function ExamPage() {
   };
 
   const handleLogout = () => {
-    setAlertConfig({
-      type: 'warning',
-      title: 'Konfirmasi keluar',
-      message: 'Apakah Anda yakin ingin keluar? Progres ujian Anda akan tersimpan.',
-    });
-    setShowAlert(true);
+    // Show logout confirmation modal
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    // Close modal
+    setShowLogoutModal(false);
+    
+    // Perform logout (redirect to login page)
+    router.push('/login');
   };
 
   const currentQuestionData = mockQuestions[currentQuestion - 1];
@@ -218,20 +226,18 @@ export default function ExamPage() {
 
       {/* Main Content */}
       <div className="mx-auto flex w-full max-w-[1400px] flex-1 overflow-hidden px-4 py-4">
-        <div className="flex w-full gap-4">
+        <div className="flex w-full gap-4 overflow-y-auto">
           {/* Left Column - Question Card (70%) */}
           <div className="flex flex-1 flex-col" style={{ flexBasis: '70%' }}>
-            <div className="flex-1 overflow-y-auto">
-              <QuestionCard
-                questionNumber={currentQuestion}
-                questionText={currentQuestionData.text}
-                image={currentQuestionData.image}
-                imageCaption={currentQuestionData.imageCaption}
-                answers={currentQuestionData.answers}
-                selectedAnswer={answers[currentQuestion] || null}
-                onSelectAnswer={handleSelectAnswer}
-              />
-            </div>
+            <QuestionCard
+              questionNumber={currentQuestion}
+              questionText={currentQuestionData.text}
+              image={currentQuestionData.image}
+              imageCaption={currentQuestionData.imageCaption}
+              answers={currentQuestionData.answers}
+              selectedAnswer={answers[currentQuestion] || null}
+              onSelectAnswer={handleSelectAnswer}
+            />
 
             {/* Action Buttons - Outside Card */}
             <div className="relative mt-3 flex flex-shrink-0 items-center justify-between gap-3">
@@ -297,6 +303,13 @@ export default function ExamPage() {
         answeredCount={Object.keys(answers).length}
         totalQuestions={mockQuestions.length}
         timeRemaining={formatTimeForModal(timeLeft)}
+      />
+
+      {/* Logout Confirm Modal */}
+      <LogoutConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onLogout={confirmLogout}
       />
     </div>
   );
