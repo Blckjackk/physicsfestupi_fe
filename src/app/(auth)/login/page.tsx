@@ -5,11 +5,24 @@ import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import AlertModal, { AlertType } from "@/components/ui/alert-modal";
 
 type FieldErrors = {
   username?: string;
   password?: string;
   form?: string;
+};
+
+type AlertState = {
+  isOpen: boolean;
+  type: AlertType;
+  title: string;
+  message: string;
+  showTimer?: boolean;
+  timerText?: string;
+  primaryButtonText?: string;
+  secondaryButtonText?: string;
+  onPrimaryClick?: () => void;
 };
 
 export default function LoginPage() {
@@ -19,6 +32,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alert, setAlert] = useState<AlertState>({
+    isOpen: false,
+    type: "info",
+    title: "",
+    message: "",
+  });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -40,29 +59,96 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ username, password })
-      // });
-
       // Simulasi API call
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Mock: Check if admin or peserta (ganti dengan logic sesungguhnya)
-      if (username.toLowerCase() === "admin") {
-        router.push("/dashboard");
-      } else {
-        router.push("/exam");
+      // ===== SIMULASI KONDISI LOGIN (Ganti dengan API response sesungguhnya) =====
+      const loginStatus = simulateLoginCondition(username, password);
+
+      switch (loginStatus) {
+        case "error":
+          // 1. Alert Error: Username atau Password Salah
+          setAlert({
+            isOpen: true,
+            type: "error",
+            title: "Error!",
+            message: "Username atau Password Salah!",
+            primaryButtonText: "Tutup",
+          });
+          break;
+
+        case "success":
+          // 2. Alert Success: Login Berhasil
+          setAlert({
+            isOpen: true,
+            type: "success",
+            title: "Berhasil!",
+            message: "Login berhasil! Ujian akan segera dimulai. Waktu Anda:",
+            showTimer: true,
+            timerText: "1 Jam 30 Menit",
+            primaryButtonText: "Lanjut",
+            secondaryButtonText: "Kembali",
+            onPrimaryClick: () => {
+              setAlert({ ...alert, isOpen: false });
+              router.push("/exam");
+            },
+          });
+          break;
+
+        case "warning":
+          // 3. Alert Warning: Waktu Ujian Belum Dimulai
+          setAlert({
+            isOpen: true,
+            type: "warning",
+            title: "Peringatan!",
+            message: "Waktu Ujian Belum Dimulai",
+            primaryButtonText: "Tutup",
+          });
+          break;
+
+        case "done":
+          // 4. Alert Info: Soal Sudah Dikerjakan
+          setAlert({
+            isOpen: true,
+            type: "info",
+            title: "Info!",
+            message: "Anda Sudah Mengerjakan Soal!",
+            primaryButtonText: "Tutup",
+          });
+          break;
+
+        default:
+          break;
       }
     } catch (error) {
-      setErrors({
-        form: "Login gagal. Periksa username dan password Anda.",
+      setAlert({
+        isOpen: true,
+        type: "error",
+        title: "Error!",
+        message: "Terjadi kesalahan. Silakan coba lagi.",
+        primaryButtonText: "Tutup",
       });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // ===== SIMULASI KONDISI LOGIN (Hapus setelah integrasi API) =====
+  const simulateLoginCondition = (username: string, password: string) => {
+    // Contoh logic untuk testing:
+    if (username === "salah" || password === "salah") {
+      return "error"; // Username/password salah
+    } else if (username === "belum") {
+      return "warning"; // Waktu ujian belum dimulai
+    } else if (username === "sudah") {
+      return "done"; // Soal sudah dikerjakan
+    } else {
+      return "success"; // Login berhasil
+    }
+  };
+
+  const closeAlert = () => {
+    setAlert({ ...alert, isOpen: false });
   };
 
   return (
@@ -199,6 +285,21 @@ export default function LoginPage() {
       <footer className="relative z-10 mt-12 pb-6 text-center text-[15px] font-medium text-[rgba(255,255,255,0.85)]">
         © Physics Fest UPI 2025. All rights reserved
       </footer>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alert.isOpen}
+        onClose={closeAlert}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        showTimer={alert.showTimer}
+        timerText={alert.timerText}
+        primaryButtonText={alert.primaryButtonText}
+        secondaryButtonText={alert.secondaryButtonText}
+        onPrimaryClick={alert.onPrimaryClick}
+        onSecondaryClick={closeAlert}
+      />
     </div>
   );
 }
