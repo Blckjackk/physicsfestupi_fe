@@ -21,8 +21,9 @@ const config: Config = {
         "purple-2": "var(--purple-2)",
         "purple-3": "var(--purple-3)",
         "green-button": "var(--green-button)",
-        "primary-purple": '#41366E',
+        
         // Bedul
+        "primary-purple": '#41366E',
 
       },
     },
