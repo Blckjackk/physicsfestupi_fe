@@ -4,7 +4,7 @@ import * as React from "react"
 
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Pencil, Search, Trash } from 'lucide-react';
+import { ChevronDown, FileCheck, Pencil, Search, Trash } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import Image from 'next/image';
@@ -113,22 +113,7 @@ export default function DashboardPage() {
             <main className="flex-1 p-8">
                 {/* Semua isi konten seperti card, tabel, dll. disokin */}
                 <div className=''>
-                    <h1 className="text-4xl font-heading font-bold text-[#41366E]">Data Peserta</h1>
-                </div>
-
-                {/* Komponen Statistik Peserta biar tinggal panggil euy */}
-                <StatistikPeserta />
-
-                <div className='flex justify-end'>
-                    <Button className='bg-[#41366E] mt-8 rounded-[10px] text-base font-heading font-bold py-6' size={"lg"}>
-                        <Image
-                            src="/images/tambah-peserta.png"
-                            alt="Simbol Tambah Peserta"
-                            width={24}
-                            height={24}
-                        />
-                        <span>Tambah Peserta</span>
-                    </Button>
+                    <h1 className="text-4xl font-heading font-bold text-[#41366E]">Hasil Ujian</h1>
                 </div>
 
                 <div className='pt-5 grid grid-cols-1 md:grid-cols-1 gap-4 font-heading'>
@@ -149,11 +134,11 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-3/12">
+                            <div className="w-1/12">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild className="shadow-md border border-[#524D59] rounded-[10px] text-[#524D59] focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none">
                                         <Button variant="outline">
-                                            <p className="pr-12">Status</p>
+                                            <p className="pr-12">?</p>
                                             <ChevronDown size={16} />
                                         </Button>
                                     </DropdownMenuTrigger>
@@ -179,7 +164,37 @@ export default function DashboardPage() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                            <div className="w-3/12 justify-end flex">
+                            <div className="w-1/12">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild className="shadow-md border border-[#524D59] rounded-[10px] text-[#524D59] focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none">
+                                        <Button variant="outline">
+                                            <p className="pr-12">?</p>
+                                            <ChevronDown size={16} />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="bg-white w-56 text-black">
+                                        <DropdownMenuCheckboxItem
+                                            checked={showPanel}
+                                            onCheckedChange={setShowPanel}
+                                        >
+                                            Belum Ujian
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            checked={showStatusBar}
+                                            onCheckedChange={setShowStatusBar}
+                                        >
+                                            Sedang Ujian
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            checked={showActivityBar}
+                                            onCheckedChange={setShowActivityBar}
+                                        >
+                                            Selesai
+                                        </DropdownMenuCheckboxItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                            <div className="w-4/12 justify-end flex">
                                 <Button className='bg-[#CD1F1F] rounded-[10px] text-lg text-base font-heading font-medium'>
                                     <span>Hapus Pilih ({numSelected})</span>
                                 </Button>
@@ -220,7 +235,7 @@ export default function DashboardPage() {
                                             <TableCell>{row.ujian}</TableCell>
                                             <TableCell>{row.status}</TableCell>
                                             <TableCell className='text-center'>
-                                                <Pencil size={18} className="inline mr-2 cursor-pointer" />
+                                                <FileCheck size={18} className="inline mr-2 cursor-pointer" />
                                                 <Trash size={18} className="inline mr-2 cursor-pointer" />
                                             </TableCell>
                                         </TableRow>
@@ -229,6 +244,17 @@ export default function DashboardPage() {
                             </Table>
                         </div>
                     </Card>
+                </div>
+                <div className='flex justify-end'>
+                    <Button className='bg-[#41366E] mt-8 rounded-[10px] text-base font-heading font-bold py-6 pr-12' size={"lg"}>
+                        <Image
+                            src="/images/export.png"
+                            alt="Simbol Export"
+                            width={24}
+                            height={24}
+                        />
+                        <span>Export Hasil</span>
+                    </Button>
                 </div>
             </main>
         </div>

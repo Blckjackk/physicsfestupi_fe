@@ -72,9 +72,9 @@ export default function Sidebar() {
           <span>Manajemen Soal</span>
         </Link>
         <Link
-          href="/hasil-ujian"
-          aria-current={pathname === '/hasil-ujian' ? 'page' : undefined}
-          className={`relative flex text-lg font-heading font-semibold items-center gap-3 py-2 px-3 rounded-[10px] transition-colors ${pathname === '/hasil-ujian'
+          href="/dashboard-admin/hasil-ujian"
+          aria-current={pathname === '/dashboard-admin/hasil-ujian' ? 'page' : undefined}
+          className={`relative flex text-lg font-heading font-semibold items-center gap-3 py-2 px-3 rounded-[10px] transition-colors ${pathname === '/dashboard-admin/hasil-ujian'
             ? 'bg-[#41366E] text-white before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-sm before:bg-[#41366E]'
             : 'text-[#41366E] hover:bg-[#41366E] hover:text-white'
             }`}
