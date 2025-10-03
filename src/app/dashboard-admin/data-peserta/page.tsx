@@ -6,8 +6,6 @@ import * as React from "react"
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Pencil, Search, Trash } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import Image from 'next/image';
 
 import Sidebar from '@/components/dashboard-admin/Sidebar';
 import StatistikPeserta from '@/components/dashboard-admin/StatistikPeserta';
@@ -31,6 +29,7 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { TambahPeserta } from "./tambah/page";
 
 const data_peserta = [
     { id: '1', no: 1, username: 'asep123', password: 'tes123', ujian: 'Ujian A', status: 'Sedang Ujian' },
@@ -120,15 +119,7 @@ export default function DashboardPage() {
                 <StatistikPeserta />
 
                 <div className='flex justify-end'>
-                    <Button className='bg-[#41366E] mt-8 rounded-[10px] text-base font-heading font-bold py-6' size={"lg"}>
-                        <Image
-                            src="/images/tambah-peserta.png"
-                            alt="Simbol Tambah Peserta"
-                            width={24}
-                            height={24}
-                        />
-                        <span>Tambah Peserta</span>
-                    </Button>
+                    <TambahPeserta />
                 </div>
 
                 <div className='pt-5 grid grid-cols-1 md:grid-cols-1 gap-4 font-heading'>
@@ -219,7 +210,7 @@ export default function DashboardPage() {
                                             <TableCell>{row.password}</TableCell>
                                             <TableCell>{row.ujian}</TableCell>
                                             <TableCell>{row.status}</TableCell>
-                                            <TableCell className='text-center'>
+                                            <TableCell className='flex items-center justify-center gap-2'>
                                                 <Pencil size={18} className="inline mr-2 cursor-pointer" />
                                                 <Trash size={18} className="inline mr-2 cursor-pointer" />
                                             </TableCell>
