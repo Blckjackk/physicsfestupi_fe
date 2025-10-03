@@ -52,9 +52,9 @@ export default function QuestionNavigation({
   };
 
   return (
-    <div className="flex h-full flex-col rounded-3xl border border-gray-200 bg-white p-5 shadow-lg">
+    <div className="flex h-full flex-col rounded-[10px] border border-gray-200 bg-white p-5 shadow-lg">
       {/* Title */}
-      <h3 className="mb-4 font-heading text-[20px] font-bold text-gray-900">
+      <h3 className="mb-4 text-center font-heading text-[24px] font-bold text-[#41366E]">
         Navigasi Soal
       </h3>
 
@@ -71,22 +71,22 @@ export default function QuestionNavigation({
         ))}
       </div>
 
-      {/* Legend */}
-      <div className="space-y-2.5 border-t border-gray-200 pt-3">
+      {/* Legend - Moved to bottom with margin-top auto */}
+      <div className="mt-auto space-y-2.5 border-t border-gray-200 pt-4">
         <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-md bg-[#6A9E3C]"></div>
+          <div className="h-7 w-7 flex-shrink-0 rounded-[10px] bg-[#6A9E3C]"></div>
           <span className="font-body text-[13px] text-gray-700">
             Sudah Dijawab
           </span>
         </div>
         <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-md bg-[#ffac27]"></div>
+          <div className="h-7 w-7 flex-shrink-0 rounded-[10px] bg-[#ffac27]"></div>
           <span className="font-body text-[13px] text-gray-700">
             Ragu-Ragu
           </span>
         </div>
         <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-md border-2 border-gray-300 bg-white"></div>
+          <div className="h-7 w-7 flex-shrink-0 rounded-[10px] border-2 border-gray-300 bg-white"></div>
           <span className="font-body text-[13px] text-gray-700">
             Belum Dijawab
           </span>

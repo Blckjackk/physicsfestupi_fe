@@ -8,6 +8,7 @@ import ExamHeader from '@/components/exam/ExamHeader';
 import QuestionCard from '@/components/exam/QuestionCard';
 import QuestionNavigation from '@/components/exam/QuestionNavigation';
 import AlertModal from '@/components/ui/alert-modal';
+import ExamConfirmModal from '@/components/exam/ExamConfirmModal';
 
 // Mock data untuk soal-soal
 const mockQuestions = [
@@ -15,17 +16,54 @@ const mockQuestions = [
     id: 1,
     text: 'Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan sebuah dinamometer di atas bidang datar licin. Ternyata gaya yang dibaca pada dinamometer adalah 12 N dan troli bergerak dipercepat.\n\nSetelah beberapa saat, siswa tersebut menambahkan beban 2 kg di atas troli dan menariknya kembali dengan gaya yang sama, yaitu 12 N.\n\nBerapakah perbandingan percepatan troli sebelum dan sesudah ditambahkan beban?',
     answers: [
-      { label: 'A', text: 'Rp8.250' },
-      { label: 'B', text: 'Rp8.250' },
-      { label: 'C', text: 'Rp8.250' },
-      { label: 'D', text: 'Rp8.250' },
-      { label: 'E', text: 'Rp8.250' },
+      { label: 'A', text: '3 : 2' },
+      { label: 'B', text: '2 : 3' },
+      { label: 'C', text: '1 : 2' },
+      { label: 'D', text: '2 : 1' },
+      { label: 'E', text: '1 : 1' },
+    ],
+  },
+  {
+    id: 2,
+    text: 'Ini adalah soal nomor 2. [Konten soal akan dimuat dari backend API]\n\nSoal ini hanya placeholder untuk testing navigasi dan fungsionalitas halaman ujian.',
+    answers: [
+      { label: 'A', text: 'Opsi A untuk soal 2' },
+      { label: 'B', text: 'Opsi B untuk soal 2' },
+      { label: 'C', text: 'Opsi C untuk soal 2' },
+      { label: 'D', text: 'Opsi D untuk soal 2' },
+      { label: 'E', text: 'Opsi E untuk soal 2' },
+    ],
+  },
+  {
+    id: 3,
+    text: 'Perhatikan diagram rangkaian listrik berikut ini!',
+    image: '/images/mascot.png',
+    imageCaption: 'Gambar 1: Rangkaian listrik dengan resistor R1, R2, dan R3',
+    answers: [
+      { label: 'A', text: 'Arus total adalah 2 Ampere' },
+      { label: 'B', text: 'Tegangan pada R1 adalah 6 Volt' },
+      { label: 'C', text: 'Daya total rangkaian adalah 24 Watt' },
+      { label: 'D', text: 'Hambatan total adalah 12 Ohm' },
+      { label: 'E', text: 'Arus pada R2 lebih besar dari R1' },
+    ],
+  },
+  {
+    id: 4,
+    text: 'Manakah grafik yang menunjukkan hubungan antara gaya (F) dan percepatan (a) sesuai dengan Hukum Newton II?',
+    image: '/images/mascot.png',
+    imageCaption: 'Perhatikan grafik di atas untuk menjawab pertanyaan',
+    answers: [
+      { label: 'A', image: '/images/mascot.png', text: '' },
+      { label: 'B', image: '/images/mascot.png', text: '' },
+      { label: 'C', image: '/images/mascot.png', text: '' },
+      { label: 'D', image: '/images/mascot.png', text: '' },
+      { label: 'E', image: '/images/mascot.png', text: '' },
     ],
   },
 ];
 
-// Generate 10 soal (soal 2-10 menggunakan template)
-for (let i = 2; i <= 10; i++) {
+// Generate soal 5-10 menggunakan template
+for (let i = 5; i <= 10; i++) {
   mockQuestions.push({
     id: i,
     text: `Ini adalah soal nomor ${i}. [Konten soal akan dimuat dari backend API]\n\nSoal ini hanya placeholder untuk testing navigasi dan fungsionalitas halaman ujian.`,
@@ -54,6 +92,9 @@ export default function ExamPage() {
     message: '',
   });
 
+  // Exam confirm modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
   // Timer countdown
   useEffect(() => {
     const timer = setInterval(() => {
@@ -75,6 +116,12 @@ export default function ExamPage() {
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatTimeForModal = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hrs} Jam ${mins} Menit`;
   };
 
   const handleTimeOut = () => {
@@ -130,25 +177,15 @@ export default function ExamPage() {
   };
 
   const handleConfirmSubmit = () => {
-    const unansweredCount = mockQuestions.length - Object.keys(answers).length;
-    
-    if (unansweredCount > 0) {
-      setAlertConfig({
-        type: 'warning',
-        title: 'Ada soal yang belum dijawab',
-        message: `Anda masih memiliki ${unansweredCount} soal yang belum dijawab. Apakah Anda yakin ingin menyelesaikan ujian?`,
-      });
-    } else {
-      setAlertConfig({
-        type: 'info',
-        title: 'Konfirmasi pengumpulan',
-        message: 'Apakah Anda yakin ingin mengumpulkan ujian? Pastikan semua jawaban sudah benar.',
-      });
-    }
-    setShowAlert(true);
+    // Show custom exam confirm modal
+    setShowConfirmModal(true);
   };
 
   const handleSubmitExam = () => {
+    // Close confirm modal
+    setShowConfirmModal(false);
+    
+    // Show success alert
     setAlertConfig({
       type: 'success',
       title: 'Ujian berhasil dikumpulkan',
@@ -184,10 +221,12 @@ export default function ExamPage() {
         <div className="flex w-full gap-4">
           {/* Left Column - Question Card (70%) */}
           <div className="flex flex-1 flex-col" style={{ flexBasis: '70%' }}>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
               <QuestionCard
                 questionNumber={currentQuestion}
                 questionText={currentQuestionData.text}
+                image={currentQuestionData.image}
+                imageCaption={currentQuestionData.imageCaption}
                 answers={currentQuestionData.answers}
                 selectedAnswer={answers[currentQuestion] || null}
                 onSelectAnswer={handleSelectAnswer}
@@ -200,19 +239,19 @@ export default function ExamPage() {
               {currentQuestion > 1 ? (
                 <button
                   onClick={handlePrevious}
-                  className="flex items-center justify-center gap-2 rounded-xl border-2 border-gray-300 bg-white px-8 py-3 font-heading text-[16px] font-bold text-gray-700 shadow-md transition-all hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg active:scale-95"
+                  className="flex h-[50px] w-[240px] items-center justify-center gap-2 rounded-xl border-2 border-gray-300 bg-white font-heading text-[16px] font-bold text-gray-700 shadow-md transition-all hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg active:scale-95"
                 >
                   <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
                   Kembali
                 </button>
               ) : (
-                <div></div>
+                <div className="w-[240px]"></div>
               )}
 
               {/* Center: Ragu-Ragu Button */}
               <button
                 onClick={handleMarkDoubtful}
-                className="absolute left-1/2 -translate-x-1/2 rounded-xl bg-[#ffac27] px-10 py-3 font-heading text-[16px] font-bold text-white shadow-md transition-all hover:bg-[#f09d15] hover:shadow-lg active:scale-95"
+                className="absolute left-1/2 h-[50px] w-[240px] -translate-x-1/2 rounded-xl bg-[#ffac27] font-heading text-[16px] font-bold text-white shadow-md transition-all hover:bg-[#f09d15] hover:shadow-lg active:scale-95"
               >
                 Ragu-Ragu
               </button>
@@ -220,7 +259,7 @@ export default function ExamPage() {
               {/* Right: Next/Submit Button */}
               <button
                 onClick={handleNext}
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#7a5cb3] px-8 py-3 font-heading text-[16px] font-bold text-white shadow-md transition-all hover:bg-[#6b4d9e] hover:shadow-lg active:scale-95"
+                className="flex h-[50px] w-[240px] items-center justify-center gap-2 rounded-xl bg-[#7a5cb3] font-heading text-[16px] font-bold text-white shadow-md transition-all hover:bg-[#6b4d9e] hover:shadow-lg active:scale-95"
               >
                 {currentQuestion === mockQuestions.length ? 'Selesai' : 'Lanjut'}
                 {currentQuestion !== mockQuestions.length && <ChevronRight className="h-5 w-5" strokeWidth={2.5} />}
@@ -248,6 +287,16 @@ export default function ExamPage() {
         type={alertConfig.type}
         title={alertConfig.title}
         message={alertConfig.message}
+      />
+
+      {/* Exam Confirm Modal */}
+      <ExamConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleSubmitExam}
+        answeredCount={Object.keys(answers).length}
+        totalQuestions={mockQuestions.length}
+        timeRemaining={formatTimeForModal(timeLeft)}
       />
     </div>
   );

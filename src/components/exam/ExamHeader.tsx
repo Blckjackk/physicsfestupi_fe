@@ -19,7 +19,7 @@ export default function ExamHeader({ timeRemaining, onLogout }: ExamHeaderProps)
   };
 
   return (
-    <header className="flex-shrink-0 bg-gradient-to-r from-[#7a5cb3] to-[#5844a0] px-6 py-3 shadow-lg">
+    <header className="flex-shrink-0 bg-gradient-to-r from-[#41366E] to-[#7a5cb3] px-6 py-3 shadow-lg">
       <div className="mx-auto flex max-w-[1400px] items-center justify-between">
         {/* Logo & Title */}
         <div className="flex items-center gap-2.5">
