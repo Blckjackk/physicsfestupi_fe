@@ -9,7 +9,6 @@ import QuestionCard from '@/components/exam/QuestionCard';
 import QuestionNavigation from '@/components/exam/QuestionNavigation';
 import AlertModal from '@/components/ui/alert-modal';
 import ExamConfirmModal from '@/components/exam/ExamConfirmModal';
-import LogoutConfirmModal from '@/components/exam/LogoutConfirmModal';
 
 // Mock data untuk soal-soal
 const mockQuestions = [
@@ -96,9 +95,6 @@ export default function ExamPage() {
   // Exam confirm modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Logout confirm modal state
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-
   // Timer countdown
   useEffect(() => {
     const timer = setInterval(() => {
@@ -149,15 +145,26 @@ export default function ExamPage() {
     }
   };
 
+  // CONFIG: Set to true to enable confirmation alert when marking doubtful
+  const SHOW_DOUBTFUL_CONFIRMATION = false;
+
   const handleMarkDoubtful = () => {
-    if (!doubtfulQuestions.includes(currentQuestion)) {
+    if (doubtfulQuestions.includes(currentQuestion)) {
+      // Already marked as doubtful - remove mark
+      setDoubtfulQuestions(doubtfulQuestions.filter((q) => q !== currentQuestion));
+    } else {
+      // Mark as doubtful
       setDoubtfulQuestions([...doubtfulQuestions, currentQuestion]);
-      setAlertConfig({
-        type: 'info',
-        title: 'Soal ditandai ragu-ragu',
-        message: 'Anda dapat kembali ke soal ini nanti melalui navigasi soal.',
-      });
-      setShowAlert(true);
+      
+      // Optional: Show confirmation alert (can be disabled)
+      if (SHOW_DOUBTFUL_CONFIRMATION) {
+        setAlertConfig({
+          type: 'info',
+          title: 'Soal ditandai ragu-ragu',
+          message: 'Anda dapat kembali ke soal ini nanti melalui navigasi soal.',
+        });
+        setShowAlert(true);
+      }
     }
   };
 
@@ -203,26 +210,13 @@ export default function ExamPage() {
     }, 2000);
   };
 
-  const handleLogout = () => {
-    // Show logout confirmation modal
-    setShowLogoutModal(true);
-  };
-
-  const confirmLogout = () => {
-    // Close modal
-    setShowLogoutModal(false);
-    
-    // Perform logout (redirect to login page)
-    router.push('/login');
-  };
-
   const currentQuestionData = mockQuestions[currentQuestion - 1];
   const answeredQuestions = Object.keys(answers).map(Number);
 
   return (
     <div className="flex h-screen flex-col bg-[#F9F9F9]">
       {/* Header */}
-      <ExamHeader timeRemaining={formatTime(timeLeft)} onLogout={handleLogout} />
+      <ExamHeader timeRemaining={formatTime(timeLeft)} />
 
       {/* Main Content */}
       <div className="mx-auto flex w-full max-w-[1400px] flex-1 overflow-hidden px-4 py-4">
@@ -254,10 +248,14 @@ export default function ExamPage() {
                 <div className="w-[240px]"></div>
               )}
 
-              {/* Center: Ragu-Ragu Button */}
+              {/* Center: Ragu-Ragu Button - Toggle yellow/white */}
               <button
                 onClick={handleMarkDoubtful}
-                className="absolute left-1/2 h-[50px] w-[240px] -translate-x-1/2 rounded-xl bg-[#ffac27] font-heading text-[16px] font-bold text-white shadow-md transition-all hover:bg-[#f09d15] hover:shadow-lg active:scale-95"
+                className={`absolute left-1/2 h-[50px] w-[240px] -translate-x-1/2 rounded-xl font-heading text-[16px] font-bold shadow-md transition-all hover:shadow-lg active:scale-95 ${
+                  doubtfulQuestions.includes(currentQuestion)
+                    ? 'bg-[#ffac27] text-white hover:bg-[#f09d15]'
+                    : 'border-2 border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                }`}
               >
                 Ragu-Ragu
               </button>
@@ -303,13 +301,6 @@ export default function ExamPage() {
         answeredCount={Object.keys(answers).length}
         totalQuestions={mockQuestions.length}
         timeRemaining={formatTimeForModal(timeLeft)}
-      />
-
-      {/* Logout Confirm Modal */}
-      <LogoutConfirmModal
-        isOpen={showLogoutModal}
-        onClose={() => setShowLogoutModal(false)}
-        onLogout={confirmLogout}
       />
     </div>
   );

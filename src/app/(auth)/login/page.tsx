@@ -82,8 +82,8 @@ export default function LoginPage() {
           setAlert({
             isOpen: true,
             type: "success",
-            title: "Berhasil!",
-            message: "Login berhasil! Ujian akan segera dimulai. Waktu Anda:",
+            title: "Berhasil",
+            message: "Ujian akan segera dimulai. Waktu Anda:",
             showTimer: true,
             timerText: "1 Jam 30 Menit",
             primaryButtonText: "Lanjut",
@@ -100,7 +100,7 @@ export default function LoginPage() {
           setAlert({
             isOpen: true,
             type: "warning",
-            title: "Peringatan!",
+            title: "Peringatan",
             message: "Waktu Ujian Belum Dimulai",
             primaryButtonText: "Tutup",
           });
@@ -111,7 +111,7 @@ export default function LoginPage() {
           setAlert({
             isOpen: true,
             type: "info",
-            title: "Info!",
+            title: "Info",
             message: "Anda Sudah Mengerjakan Soal!",
             primaryButtonText: "Tutup",
           });
@@ -267,7 +267,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-gradient-to-b from-[#7CB342] to-[#689F38] font-body text-base font-medium text-white shadow-md transition-all hover:from-[#689F38] hover:to-[#558B2F] focus:outline-none focus:ring-2 focus:ring-green-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-4 flex h-12 w-full items-center justify-center rounded-lg bg-gradient-to-b from-[#7CB342] to-[#689F38] font-body text-base font-medium text-white shadow-md transition-all hover:from-[#689F38] hover:to-[#558B2F] focus:outline-none focus:ring-2 focus:ring-green-300 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmitting ? "Memproses..." : "Log in"}
                   </button>
