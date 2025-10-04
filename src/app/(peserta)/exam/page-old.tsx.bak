@@ -1,0 +1,388 @@
+// @ts-nocheck
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import ExamHeader from '@/components/exam/ExamHeader';
+import QuestionCard from '@/components/exam/QuestionCard';
+import QuestionNavigation from '@/components/exam/QuestionNavigation';
+import AlertModal from '@/components/ui/alert-modal';
+import { AuthService, ExamService, initializeLocalStorage, Ujian, JawabanPeserta } from '@/lib/mockData';
+
+export default function ExamPage() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [ujianData, setUjianData] = useState<Ujian | null>(null);
+  const [userId, setUserId] = useState<string>('');
+
+  // Initialize and load data
+  useEffect(() => {
+    initializeLocalStorage();
+    
+    // Check authentication
+    const currentUser = AuthService.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'peserta') {
+      router.push('/login');
+      return;
+    }
+
+    setUserId(currentUser.id);
+
+    // Load ujian data
+    if (currentUser.ujianId) {
+      const ujian = ExamService.getUjian(currentUser.ujianId);
+      if (ujian) {
+        setUjianData(ujian);
+        
+        // Check if already completed
+        const existingJawaban = ExamService.getJawaban(currentUser.id, ujian.id);
+        if (existingJawaban && existingJawaban.waktuSelesai) {
+          // Already completed
+          setAlertConfig({
+            type: 'info',
+            title: 'Info',
+            message: 'Anda sudah menyelesaikan ujian ini.',
+          });
+          setShowAlert(true);
+          setTimeout(() => {
+            AuthService.logout();
+            router.push('/login');
+          }, 3000);
+          return;
+        }
+
+        // Load existing answers if any
+        if (existingJawaban) {
+          setAnswers(existingJawaban.jawaban);
+          setDoubtfulQuestions(existingJawaban.raguRagu);
+          
+          // Calculate remaining time
+          const waktuMulai = new Date(existingJawaban.waktuMulai);
+          const sekarang = new Date();
+          const elapsedSeconds = Math.floor((sekarang.getTime() - waktuMulai.getTime()) / 1000);
+          const remainingSeconds = (ujian.durasi * 60) - elapsedSeconds;
+          setTimeLeft(Math.max(0, remainingSeconds));
+        } else {
+          // Initialize new exam session
+          const newJawaban: JawabanPeserta = {
+            userId: currentUser.id,
+            ujianId: ujian.id,
+            jawaban: {},
+            raguRagu: [],
+            waktuMulai: new Date(),
+          };
+          ExamService.saveJawaban(newJawaban);
+          setTimeLeft(ujian.durasi * 60);
+        }
+      } else {
+        setAlertConfig({
+          type: 'error',
+          title: 'Error',
+          message: 'Data ujian tidak ditemukan.',
+        });
+        setShowAlert(true);
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+        return;
+      }
+    }
+
+    setIsLoading(false);
+  }, [router]);
+
+  const mockQuestions = [
+  {
+    id: 1,
+    text: 'Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan sebuah dinamometer di atas bidang datar licin. Ternyata gaya yang dibaca pada dinamometer adalah 12 N dan troli bergerak dipercepat.\n\nSetelah beberapa saat, siswa tersebut menambahkan beban 2 kg di atas troli dan menariknya kembali dengan gaya yang sama, yaitu 12 N.\n\nBerapakah perbandingan percepatan troli sebelum dan sesudah ditambahkan beban?',
+    answers: [
+      { label: 'A', text: '3 : 2' },
+      { label: 'B', text: '2 : 3' },
+      { label: 'C', text: '1 : 2' },
+      { label: 'D', text: '2 : 1' },
+      { label: 'E', text: '1 : 1' },
+    ],
+  },
+  {
+    id: 2,
+    text: 'Ini adalah soal nomor 2. [Konten soal akan dimuat dari backend API]\n\nSoal ini hanya placeholder untuk testing navigasi dan fungsionalitas halaman ujian.',
+    answers: [
+      { label: 'A', text: 'Opsi A untuk soal 2' },
+      { label: 'B', text: 'Opsi B untuk soal 2' },
+      { label: 'C', text: 'Opsi C untuk soal 2' },
+      { label: 'D', text: 'Opsi D untuk soal 2' },
+      { label: 'E', text: 'Opsi E untuk soal 2' },
+    ],
+  },
+  {
+    id: 3,
+    text: 'Perhatikan diagram rangkaian listrik berikut ini!',
+    image: '/images/mascot.png',
+    imageCaption: 'Gambar 1: Rangkaian listrik dengan resistor R1, R2, dan R3',
+    answers: [
+      { label: 'A', text: 'Arus total adalah 2 Ampere' },
+      { label: 'B', text: 'Tegangan pada R1 adalah 6 Volt' },
+      { label: 'C', text: 'Daya total rangkaian adalah 24 Watt' },
+      { label: 'D', text: 'Hambatan total adalah 12 Ohm' },
+      { label: 'E', text: 'Arus pada R2 lebih besar dari R1' },
+    ],
+  },
+  {
+    id: 4,
+    text: 'Manakah grafik yang menunjukkan hubungan antara gaya (F) dan percepatan (a) sesuai dengan Hukum Newton II?',
+    image: '/images/mascot.png',
+    imageCaption: 'Perhatikan grafik di atas untuk menjawab pertanyaan',
+    answers: [
+      { label: 'A', image: '/images/mascot.png', text: '' },
+      { label: 'B', image: '/images/mascot.png', text: '' },
+      { label: 'C', image: '/images/mascot.png', text: '' },
+      { label: 'D', image: '/images/mascot.png', text: '' },
+      { label: 'E', image: '/images/mascot.png', text: '' },
+    ],
+  },
+];
+
+// Generate soal 5-10 menggunakan template
+for (let i = 5; i <= 10; i++) {
+  mockQuestions.push({
+    id: i,
+    text: `Ini adalah soal nomor ${i}. [Konten soal akan dimuat dari backend API]\n\nSoal ini hanya placeholder untuk testing navigasi dan fungsionalitas halaman ujian.`,
+    answers: [
+      { label: 'A', text: `Opsi A untuk soal ${i}` },
+      { label: 'B', text: `Opsi B untuk soal ${i}` },
+      { label: 'C', text: `Opsi C untuk soal ${i}` },
+      { label: 'D', text: `Opsi D untuk soal ${i}` },
+      { label: 'E', text: `Opsi E untuk soal ${i}` },
+    ],
+  });
+}
+
+export default function ExamPage() {
+  const router = useRouter();
+  const [timeLeft, setTimeLeft] = useState(3540); // 59 menit (sesuai gambar: 0:59:00)
+  const [currentQuestion, setCurrentQuestion] = useState(1);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [doubtfulQuestions, setDoubtfulQuestions] = useState<number[]>([]);
+  
+  // Alert modal states
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: 'info' as 'error' | 'success' | 'warning' | 'info',
+    title: '',
+    message: '',
+  });
+
+  // Exam confirm modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Timer countdown
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 0) {
+          clearInterval(timer);
+          handleTimeOut();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatTimeForModal = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hrs} Jam ${mins} Menit`;
+  };
+
+  const handleTimeOut = () => {
+    setAlertConfig({
+      type: 'warning',
+      title: 'Waktu ujian telah habis',
+      message: 'Jawaban Anda akan otomatis tersimpan dan ujian akan berakhir.',
+    });
+    setShowAlert(true);
+    // Auto submit after timeout
+    setTimeout(() => {
+      handleSubmitExam();
+    }, 3000);
+  };
+
+  const handleSelectAnswer = (label: string) => {
+    setAnswers({ ...answers, [currentQuestion]: label });
+    // Remove from doubtful if answered
+    if (doubtfulQuestions.includes(currentQuestion)) {
+      setDoubtfulQuestions(doubtfulQuestions.filter((q) => q !== currentQuestion));
+    }
+  };
+
+  // CONFIG: Set to true to enable confirmation alert when marking doubtful
+  const SHOW_DOUBTFUL_CONFIRMATION = false;
+
+  const handleMarkDoubtful = () => {
+    if (doubtfulQuestions.includes(currentQuestion)) {
+      // Already marked as doubtful - remove mark
+      setDoubtfulQuestions(doubtfulQuestions.filter((q) => q !== currentQuestion));
+    } else {
+      // Mark as doubtful
+      setDoubtfulQuestions([...doubtfulQuestions, currentQuestion]);
+      
+      // Optional: Show confirmation alert (can be disabled)
+      if (SHOW_DOUBTFUL_CONFIRMATION) {
+        setAlertConfig({
+          type: 'info',
+          title: 'Soal ditandai ragu-ragu',
+          message: 'Anda dapat kembali ke soal ini nanti melalui navigasi soal.',
+        });
+        setShowAlert(true);
+      }
+    }
+  };
+
+  const handleNext = () => {
+    if (currentQuestion < mockQuestions.length) {
+      setCurrentQuestion(currentQuestion + 1);
+    } else {
+      // Last question - show confirmation to submit
+      handleConfirmSubmit();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestion > 1) {
+      setCurrentQuestion(currentQuestion - 1);
+    }
+  };
+
+  const handleNavigate = (questionNumber: number) => {
+    setCurrentQuestion(questionNumber);
+  };
+
+  const handleConfirmSubmit = () => {
+    // Show custom exam confirm modal
+    setShowConfirmModal(true);
+  };
+
+  const handleSubmitExam = () => {
+    // Close confirm modal
+    setShowConfirmModal(false);
+    
+    // Show success alert
+    setAlertConfig({
+      type: 'success',
+      title: 'Ujian berhasil dikumpulkan',
+      message: 'Terima kasih telah mengikuti ujian Physics Fest UPI 2025. Hasil akan diumumkan kemudian.',
+    });
+    setShowAlert(true);
+    
+    // Redirect to confirmation page after 2 seconds
+    setTimeout(() => {
+      router.push('/confirmation');
+    }, 2000);
+  };
+
+  const currentQuestionData = mockQuestions[currentQuestion - 1];
+  const answeredQuestions = Object.keys(answers).map(Number);
+
+  return (
+    <div className="flex h-screen flex-col bg-[#F9F9F9]">
+      {/* Header */}
+      <ExamHeader timeRemaining={formatTime(timeLeft)} />
+
+      {/* Main Content */}
+      <div className="mx-auto flex w-full max-w-[1400px] flex-1 overflow-hidden px-4 py-4">
+        <div className="flex w-full gap-4 overflow-y-auto">
+          {/* Left Column - Question Card (70%) */}
+          <div className="flex flex-1 flex-col" style={{ flexBasis: '70%' }}>
+            <QuestionCard
+              questionNumber={currentQuestion}
+              questionText={currentQuestionData.text}
+              image={currentQuestionData.image}
+              imageCaption={currentQuestionData.imageCaption}
+              answers={currentQuestionData.answers}
+              selectedAnswer={answers[currentQuestion] || null}
+              onSelectAnswer={handleSelectAnswer}
+            />
+
+            {/* Action Buttons - Outside Card */}
+            <div className="relative mt-3 flex flex-shrink-0 items-center justify-between gap-3">
+              {/* Left: Back Button (only if not first question) */}
+              {currentQuestion > 1 ? (
+                <button
+                  onClick={handlePrevious}
+                  className="flex h-[50px] w-[240px] items-center justify-center gap-2 rounded-xl border-2 border-gray-300 bg-white font-heading text-[16px] font-bold text-gray-700 shadow-md transition-all hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg active:scale-95"
+                >
+                  <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+                  Kembali
+                </button>
+              ) : (
+                <div className="w-[240px]"></div>
+              )}
+
+              {/* Center: Ragu-Ragu Button - Toggle yellow/white */}
+              <button
+                onClick={handleMarkDoubtful}
+                className={`absolute left-1/2 h-[50px] w-[240px] -translate-x-1/2 rounded-xl font-heading text-[16px] font-bold shadow-md transition-all hover:shadow-lg active:scale-95 ${
+                  doubtfulQuestions.includes(currentQuestion)
+                    ? 'bg-[#ffac27] text-white hover:bg-[#f09d15]'
+                    : 'border-2 border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                }`}
+              >
+                Ragu-Ragu
+              </button>
+
+              {/* Right: Next/Submit Button */}
+              <button
+                onClick={handleNext}
+                className="flex h-[50px] w-[240px] items-center justify-center gap-2 rounded-xl bg-[#7a5cb3] font-heading text-[16px] font-bold text-white shadow-md transition-all hover:bg-[#6b4d9e] hover:shadow-lg active:scale-95"
+              >
+                {currentQuestion === mockQuestions.length ? 'Selesai' : 'Lanjut'}
+                {currentQuestion !== mockQuestions.length && <ChevronRight className="h-5 w-5" strokeWidth={2.5} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column - Navigation (30%) */}
+          <div className="flex-shrink-0" style={{ flexBasis: '30%' }}>
+            <QuestionNavigation
+              totalQuestions={mockQuestions.length}
+              currentQuestion={currentQuestion}
+              answeredQuestions={answeredQuestions}
+              doubtfulQuestions={doubtfulQuestions}
+              onNavigate={handleNavigate}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={() => setShowAlert(false)}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+      />
+
+      {/* Exam Confirm Modal */}
+      <ExamConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleSubmitExam}
+        answeredCount={Object.keys(answers).length}
+        totalQuestions={mockQuestions.length}
+        timeRemaining={formatTimeForModal(timeLeft)}
+      />
+    </div>
+  );
+}

@@ -5,13 +5,14 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
+import { AdminUjianService } from '@/lib/mockData';
 
 export default function EditSoalPage() {
   const router = useRouter();
   const params = useParams();
-  const examId = params.id;
-  const questionId = params.questionId;
-  const [examName, setExamName] = useState('Ujian A');
+  const examId = params.id as string;
+  const questionId = params.questionId as string;
+  const [examName, setExamName] = useState('');
   
   // Form States
   const [tipeSoal, setTipeSoal] = useState('Gambar');
@@ -40,47 +41,31 @@ export default function EditSoalPage() {
   useEffect(() => {
     const loadQuestionData = async () => {
       try {
-        // TODO: Replace with actual API call
-        // const response = await fetch(`/api/questions/${questionId}`);
-        // const data = await response.json();
-        
-        // Mock data - replace with actual API data
-        const mockQuestion = {
-          tipeSoal: 'Gambar',
-          soal: 'Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin.',
-          soalGambar: 'https://via.placeholder.com/400x200',
-          jawaban: {
-            A: '#1231',
-            B: '#1232',
-            C: '#1233',
-            D: '#1234',
-            E: '#1235',
-          },
-          gambarJawaban: {
-            A: 'https://via.placeholder.com/200x100',
-            B: null,
-            C: null,
-            D: null,
-            E: null,
-          },
-          jawabanBenar: 'D',
-        };
-
-        // Populate form with existing data
-        setTipeSoal(mockQuestion.tipeSoal);
-        setSoal(mockQuestion.soal);
-        setSoalGambarPreview(mockQuestion.soalGambar);
-        setJawabanA(mockQuestion.jawaban.A);
-        setJawabanB(mockQuestion.jawaban.B);
-        setJawabanC(mockQuestion.jawaban.C);
-        setJawabanD(mockQuestion.jawaban.D);
-        setJawabanE(mockQuestion.jawaban.E);
-        setGambarAPreview(mockQuestion.gambarJawaban.A);
-        setGambarBPreview(mockQuestion.gambarJawaban.B);
-        setGambarCPreview(mockQuestion.gambarJawaban.C);
-        setGambarDPreview(mockQuestion.gambarJawaban.D);
-        setGambarEPreview(mockQuestion.gambarJawaban.E);
-        setJawabanBenar(mockQuestion.jawabanBenar);
+        // Load ujian data
+        const ujian = AdminUjianService.getUjianById(examId);
+        if (ujian) {
+          setExamName(ujian.nama);
+          
+          // Find the specific question
+          const soal = AdminUjianService.getSoalById(examId, questionId);
+          if (soal) {
+            // Populate form with existing data
+            setTipeSoal('Teks'); // Default for now
+            setSoal(soal.pertanyaan);
+            setJawabanA(soal.opsi.find(o => o.label === 'A')?.teks || '');
+            setJawabanB(soal.opsi.find(o => o.label === 'B')?.teks || '');
+            setJawabanC(soal.opsi.find(o => o.label === 'C')?.teks || '');
+            setJawabanD(soal.opsi.find(o => o.label === 'D')?.teks || '');
+            setJawabanE(soal.opsi.find(o => o.label === 'E')?.teks || '');
+            setJawabanBenar(soal.jawabanBenar);
+          } else {
+            alert('Soal tidak ditemukan');
+            router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+          }
+        } else {
+          alert('Ujian tidak ditemukan');
+          router.push('/manajemen-soal');
+        }
 
         setIsLoading(false);
       } catch (error) {
@@ -90,7 +75,7 @@ export default function EditSoalPage() {
     };
 
     loadQuestionData();
-  }, [questionId]);
+  }, [questionId, examId, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,28 +85,35 @@ export default function EditSoalPage() {
       return;
     }
 
-    // TODO: Replace with actual API call
-    // const formData = new FormData();
-    // formData.append('tipeSoal', tipeSoal);
-    // formData.append('soal', soal);
-    // if (soalGambar) formData.append('soalGambar', soalGambar);
-    // ... append all form data
-    
-    // const response = await fetch(`/api/questions/${questionId}`, {
-    //   method: 'PUT',
-    //   body: formData
-    // });
+    if (!jawabanA || !jawabanB || !jawabanC || !jawabanD || !jawabanE) {
+      alert('Semua jawaban (A-E) harus diisi');
+      return;
+    }
 
-    console.log('Updating question:', {
-      questionId,
-      tipeSoal,
-      soal,
-      jawaban: { A: jawabanA, B: jawabanB, C: jawabanC, D: jawabanD, E: jawabanE },
-      jawabanBenar,
-    });
+    try {
+      // Update soal
+      const updated = AdminUjianService.updateSoal(examId, questionId, {
+        pertanyaan: soal,
+        opsi: [
+          { label: 'A', teks: jawabanA },
+          { label: 'B', teks: jawabanB },
+          { label: 'C', teks: jawabanC },
+          { label: 'D', teks: jawabanD },
+          { label: 'E', teks: jawabanE },
+        ],
+        jawabanBenar: jawabanBenar,
+      });
 
-    // Navigate back to edit page with soal tab
-    router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+      if (updated) {
+        alert('Soal berhasil diupdate');
+        router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+      } else {
+        alert('Gagal mengupdate soal - Soal tidak ditemukan');
+      }
+    } catch (error) {
+      console.error('Error updating soal:', error);
+      alert('Gagal mengupdate soal');
+    }
   };
 
   const handleBack = () => {
