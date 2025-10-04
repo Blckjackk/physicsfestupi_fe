@@ -58,8 +58,8 @@ const data_peserta_initial = [
 type Checked = DropdownMenuCheckboxItemProps["checked"]
 
 export default function DashboardPage() {
-    // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
     const [peserta, setPeserta] = React.useState(data_peserta_initial);
+    // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showStatusBar, setShowStatusBar] = React.useState<Checked>(true)
@@ -118,16 +118,46 @@ export default function DashboardPage() {
         return matchesSearch && matchesStatus;
     });
 
-    const handleTambahPeserta = (dataForm: { username: string; password: string; ujian: string; }) => {
-        const newPeserta = {
-            id: Date.now().toString(),
-            no: peserta.length + 1,
-            username: dataForm.username,
-            password: dataForm.password,
-            ujian: dataForm.ujian,
-            status: 'Belum Mulai',
-        };
-        setPeserta(prevPeserta => [...prevPeserta, newPeserta]);
+    const handleTambahPeserta = async (formData: { username: string; password: string; ujian: string }) => {
+        try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL; // Pastikan ini ada di .env.local
+
+            const response = await fetch(`${apiBaseUrl}/api/admin/peserta`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                // Tangani error dari server
+                throw new Error(result.message || 'Gagal menambahkan peserta.');
+            }
+
+            // Jika berhasil, tambahkan data baru dari server ke state 'peserta'
+            // Ini lebih baik daripada menambah data mentah dari form
+            const newPesertaFromServer = result.data.peserta;
+
+            // Kita perlu membuat format data baru agar sesuai dengan state 'peserta'
+            const formattedNewPeserta = {
+                id: newPesertaFromServer.id.toString(),
+                no: peserta.length + 1,
+                username: newPesertaFromServer.username,
+                password: '***', // Sebaiknya tidak menampilkan password asli
+                ujian: formData.ujian, // Ambil dari form karena API tidak mengembalikan ini
+                status: 'Belum Mulai', // Status awal
+            };
+
+            setPeserta(prevPeserta => [...prevPeserta, formattedNewPeserta]);
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Gagal menambahkan peserta. Silakan coba lagi.');
+        }
     };
 
     const handleEditPeserta = (pesertaId: string, dataUpdate: { username: string; password: string; ujian: string }) => {
@@ -150,7 +180,7 @@ export default function DashboardPage() {
         setPeserta(prevPeserta => prevPeserta.filter(p => p.id !== pesertaId));
 
         // Buka dialog sukses
-        setIsSuccessOpen(true); // <-- TAMBAHKAN INI
+        setIsSuccessOpen(true);
     };
 
     const [isConfirmHapusPilihOpen, setIsConfirmHapusPilihOpen] = React.useState(false);
@@ -186,7 +216,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className='pt-5 grid grid-cols-1 md:grid-cols-1 gap-4 font-heading'>
-                    <Card className='bg-white p-8 shadow-md border border-[#524D59] rounded-[28px]'>
+                    <Card className='bg-white p-8 shadow-md'>
                         <div className="flex items-center gap-4">
                             <div className="w-6/12">
                                 <div className="relative w-full">

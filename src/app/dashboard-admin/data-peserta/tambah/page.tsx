@@ -59,7 +59,7 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
 
     const formData = { username, password, ujian: position };
     onTambah(formData);
-    console.log("Data yang akan dikirim:", formData);
+    // console.log("Data yang akan dikirim:", formData);
 
     setIsFormOpen(false);
     setIsSuccessOpen(true);
