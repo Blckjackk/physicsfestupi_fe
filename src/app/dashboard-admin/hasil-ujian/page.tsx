@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-
+import * as XLSX from "xlsx";
 
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, FileCheck, Pencil, Search, Trash } from 'lucide-react';
@@ -147,6 +147,52 @@ export default function HasilUjian() {
 
         return sorted;
     }, [searchQuery, position, peserta]);
+
+    const handleExportExcel = () => {
+        // 1. Siapkan nama kolom untuk header di Excel
+        const headers = [
+            "No.",
+            "Username",
+            "Nama Ujian",
+            "Waktu Mulai",
+            "Waktu Selesai",
+            "Jumlah Soal",
+            "Soal Terjawab"
+        ];
+
+        // 2. Format ulang data `sortedAndFilteredData` agar sesuai dengan header
+        const dataToExport = sortedAndFilteredData.map(row => ({
+            "No.": row.no,
+            "Username": row.username,
+            "Nama Ujian": row.nama_ujian,
+            "Waktu Mulai": row.mulai,
+            "Waktu Selesai": row.selesai,
+            "Jumlah Soal": row.jumlah_soal,
+            "Soal Terjawab": row.terjawab
+        }));
+
+        // 3. Buat worksheet dari data
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport, { header: headers });
+
+        // 4. (Opsional) Atur lebar kolom agar tidak terlalu sempit
+        const columnWidths = [
+            { wch: 5 },   // No.
+            { wch: 20 },  // Username
+            { wch: 15 },  // Nama Ujian
+            { wch: 20 },  // Waktu Mulai
+            { wch: 20 },  // Waktu Selesai
+            { wch: 12 },  // Jumlah Soal
+            { wch: 12 },  // Soal Terjawab
+        ];
+        worksheet["!cols"] = columnWidths;
+
+        // 5. Buat workbook baru dan tambahkan worksheet
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Ujian");
+
+        // 6. Generate file Excel dan trigger download
+        XLSX.writeFile(workbook, "Hasil_Ujian_Peserta.xlsx");
+    };
 
     return (
         <div className="flex min-h-screen bg-gray-100">
@@ -294,7 +340,7 @@ export default function HasilUjian() {
                     </Card>
                 </div>
                 <div className='flex justify-end'>
-                    <Button className='bg-[#41366E] mt-8 rounded-[10px] text-base font-heading font-bold py-6 pr-12' size={"lg"}>
+                    <Button className='bg-[#41366E] mt-8 rounded-[10px] text-base font-heading font-bold py-6 pr-12 cursor-pointer' size={"lg"} onClick={handleExportExcel}>
                         <Image
                             src="/images/export.png"
                             alt="Simbol Export"
