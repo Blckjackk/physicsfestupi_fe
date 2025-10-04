@@ -27,7 +27,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-export function TambahPeserta() {
+interface TambahPesertaProps {
+  onTambah: (data: { username: string; password: string; ujian: string }) => void;
+}
+
+export function TambahPeserta({ onTambah }: TambahPesertaProps) {
   // 1. State untuk mengontrol kedua dialog
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
@@ -54,6 +58,7 @@ export function TambahPeserta() {
     }
 
     const formData = { username, password, ujian: position };
+    onTambah(formData);
     console.log("Data yang akan dikirim:", formData);
 
     setIsFormOpen(false);

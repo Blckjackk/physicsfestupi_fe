@@ -29,9 +29,23 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { TambahPeserta } from "./tambah/page";
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 
-const data_peserta = [
+import { TambahPeserta } from "./tambah/page";
+import { EditPeserta } from "./edit/page";
+import { HapusPeserta } from "./hapus/page";
+import Image from "next/image";
+
+const data_peserta_initial = [
     { id: '1', no: 1, username: 'asep123', password: 'tes123', ujian: 'Ujian A', status: 'Sedang Ujian' },
     { id: '2', no: 2, username: 'inibudi', password: 'tes123', ujian: 'Ujian B', status: 'Sedang Ujian' },
     { id: '3', no: 3, username: 'andiiii10', password: 'tes123', ujian: 'Ujian C', status: 'Selesai' },
@@ -45,14 +59,19 @@ type Checked = DropdownMenuCheckboxItemProps["checked"]
 
 export default function DashboardPage() {
     // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
+    const [peserta, setPeserta] = React.useState(data_peserta_initial);
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showStatusBar, setShowStatusBar] = React.useState<Checked>(true)
+    const [showActivityBar, setShowActivityBar] = React.useState<Checked>(true)
+    const [showPanel, setShowPanel] = React.useState<Checked>(true)
 
     // Ref buat checkbox di header (untuk state indeterminate)
     const headerCheckboxRef = useRef<HTMLButtonElement>(null);
 
     // Ngitung jumlah baris yg kepilih dan total baris dari data asli
     const numSelected = selectedRows.length;
-    const rowCount = data_peserta.length;
+    const rowCount = peserta.length;
 
     // Efek buat ngatur state indeterminate pada checkbox header
     useEffect(() => {
@@ -66,7 +85,7 @@ export default function DashboardPage() {
     // Fungsi buat kasus klik "select all" di header table
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            const allRowIds = data_peserta.map((row) => row.id);
+            const allRowIds = peserta.map((row) => row.id);
             setSelectedRows(allRowIds);
         } else {
             setSelectedRows([]);
@@ -82,28 +101,72 @@ export default function DashboardPage() {
         }
     };
 
-    // State buat nyimpen teks dari input search
-    const [searchQuery, setSearchQuery] = useState('');
-    // State buat nyimpen data yang udah difilter dan akan ditampilkan
-    const [filteredData, setFilteredData] = useState(data_peserta);
+    const activeStatuses: string[] = [];
+    if (showPanel) activeStatuses.push('Belum Mulai');
+    if (showStatusBar) activeStatuses.push('Sedang Ujian');
+    if (showActivityBar) activeStatuses.push('Selesai');
 
-    useEffect(() => {
-        // Kalo query kosong, tampilkan semua data
-        if (searchQuery === '') {
-            setFilteredData(data_peserta);
-        } else {
-            // Kalo ada query, filter data
-            const newFilteredData = data_peserta.filter(item =>
-                // Ubah username dan query ke huruf kecil agar case-insensitive
-                item.username.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-            setFilteredData(newFilteredData);
-        }
-    }, [searchQuery]);
+    // Gabungkan filter pencarian dan filter status
+    const filteredData = peserta.filter(item => {
+        // Cek apakah username cocok dengan pencarian (jika ada)
+        const matchesSearch = item.username.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const [showStatusBar, setShowStatusBar] = React.useState<Checked>(true)
-    const [showActivityBar, setShowActivityBar] = React.useState<Checked>(true)
-    const [showPanel, setShowPanel] = React.useState<Checked>(true)
+        // Cek apakah status item ada di dalam daftar status yang aktif
+        const matchesStatus = activeStatuses.includes(item.status);
+
+        // Tampilkan baris hanya jika kedua kondisi terpenuhi
+        return matchesSearch && matchesStatus;
+    });
+
+    const handleTambahPeserta = (dataForm: { username: string; password: string; ujian: string; }) => {
+        const newPeserta = {
+            id: Date.now().toString(),
+            no: peserta.length + 1,
+            username: dataForm.username,
+            password: dataForm.password,
+            ujian: dataForm.ujian,
+            status: 'Belum Mulai',
+        };
+        setPeserta(prevPeserta => [...prevPeserta, newPeserta]);
+    };
+
+    const handleEditPeserta = (pesertaId: string, dataUpdate: { username: string; password: string; ujian: string }) => {
+        setPeserta(prevPeserta =>
+            prevPeserta.map(p => {
+                // Jika ID peserta cocok dengan ID yang akan diupdate
+                if (p.id === pesertaId) {
+                    // Kembalikan data yang sudah digabung dengan data baru
+                    return { ...p, ...dataUpdate };
+                }
+                // Jika tidak cocok, kembalikan data lama tanpa perubahan
+                return p;
+            })
+        );
+    };
+
+    const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
+    const handleHapusPeserta = (pesertaId: string) => {
+        // Hapus data dari state peserta
+        setPeserta(prevPeserta => prevPeserta.filter(p => p.id !== pesertaId));
+
+        // Buka dialog sukses
+        setIsSuccessOpen(true); // <-- TAMBAHKAN INI
+    };
+
+    const [isConfirmHapusPilihOpen, setIsConfirmHapusPilihOpen] = React.useState(false);
+    const [isSuccessHapusPilihOpen, setIsSuccessHapusPilihOpen] = React.useState(false);
+    const handleHapusPilih = () => {
+        // Filter state 'peserta'
+        setPeserta(prevPeserta =>
+            prevPeserta.filter(p => !selectedRows.includes(p.id))
+        );
+
+        // Kosongkan kembali daftar baris yang terpilih
+        setSelectedRows([]);
+
+        // Buka dialog sukses
+        setIsSuccessHapusPilihOpen(true); // <-- TAMBAHKAN INI
+    };
 
     return (
         <div className="flex min-h-screen bg-gray-100">
@@ -119,7 +182,7 @@ export default function DashboardPage() {
                 <StatistikPeserta />
 
                 <div className='flex justify-end'>
-                    <TambahPeserta />
+                    <TambahPeserta onTambah={handleTambahPeserta} />
                 </div>
 
                 <div className='pt-5 grid grid-cols-1 md:grid-cols-1 gap-4 font-heading'>
@@ -170,10 +233,56 @@ export default function DashboardPage() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                            <div className="w-3/12 justify-end flex">
+                            {/* <div className="w-3/12 justify-end flex">
                                 <Button className='bg-[#CD1F1F] rounded-[10px] text-lg text-base font-heading font-medium'>
                                     <span>Hapus Pilih ({numSelected})</span>
                                 </Button>
+                            </div> */}
+                            <div className="w-3/12 justify-end flex">
+                                <Dialog open={isConfirmHapusPilihOpen} onOpenChange={setIsConfirmHapusPilihOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            className='bg-[#CD1F1F] rounded-[10px] text-lg text-base font-heading font-medium'
+                                            disabled={numSelected === 0}
+                                        >
+                                            Hapus Pilih ({numSelected})
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="font-heading bg-white sm:max-w-lg">
+                                        {/* Menggunakan form agar strukturnya sama persis */}
+                                        <form onSubmit={(e) => {
+                                            e.preventDefault(); // Mencegah reload halaman
+                                            handleHapusPilih(); // Panggil fungsi hapus
+                                            setIsConfirmHapusPilihOpen(false); // Tutup dialog
+                                        }}>
+                                            <DialogHeader className="flex items-center justify-center">
+                                                <DialogTitle className="flex flex-col items-center text-black text-xl font-semibold">
+                                                    <Image
+                                                        src="/images/hapus.png"
+                                                        alt="Logo Hapus"
+                                                        width={80}
+                                                        height={80}
+                                                    />
+                                                    <div className="mt-2 text-center">Peringatan!</div>
+                                                </DialogTitle>
+                                                <DialogDescription className="text-base text-black font-medium text-center">
+                                                    {/* Pesan dibuat dinamis sesuai jumlah data */}
+                                                    Apakah Anda yakin ingin menghapus {numSelected} peserta terpilih?
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <DialogFooter className="grid grid-cols-2 gap-4 mt-4">
+                                                <DialogClose asChild>
+                                                    <Button type="button" className="w-full text-white bg-[#565656]" variant="outline">
+                                                        Tidak
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button className="w-full bg-[#CD1F1F] text-white" type="submit">
+                                                    Hapus
+                                                </Button>
+                                            </DialogFooter>
+                                        </form>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </div>
 
@@ -211,8 +320,11 @@ export default function DashboardPage() {
                                             <TableCell>{row.ujian}</TableCell>
                                             <TableCell>{row.status}</TableCell>
                                             <TableCell className='flex items-center justify-center gap-2'>
-                                                <Pencil size={18} className="inline mr-2 cursor-pointer" />
-                                                <Trash size={18} className="inline mr-2 cursor-pointer" />
+                                                <EditPeserta peserta={row} onEdit={handleEditPeserta} />
+                                                <HapusPeserta
+                                                    pesertaId={row.id} // Kirim ID dari baris ini
+                                                    onHapus={handleHapusPeserta} // Kirim fungsi untuk menghapus
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -221,6 +333,57 @@ export default function DashboardPage() {
                         </div>
                     </Card>
                 </div>
+                <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
+                    <DialogContent className="font-heading bg-white sm:max-w-[425px]">
+                        <DialogHeader className="flex items-center justify-center">
+                            <DialogTitle className="flex flex-col items-center text-black text-xl font-semibold text-center">
+                                <Image
+                                    src="/images/berhasil.png"
+                                    alt="Logo Berhasil"
+                                    width={80}
+                                    height={80}
+                                />
+                                <div className="mt-2">Berhasil</div>
+                            </DialogTitle>
+                            <DialogDescription className="text-base text-black font-medium">
+                                Berhasil Hapus Peserta
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="grid grid-cols-1 gap-4">
+                            <DialogClose asChild>
+                                <Button className="w-full text-white bg-[#749221]" variant="outline">
+                                    Tutup
+                                </Button>
+                            </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+                <Dialog open={isSuccessHapusPilihOpen} onOpenChange={setIsSuccessHapusPilihOpen}>
+                    <DialogContent className="font-heading bg-white sm:max-w-[425px]">
+                        <DialogHeader className="flex items-center justify-center">
+                            <DialogTitle className="flex flex-col items-center text-black text-xl font-semibold text-center">
+                                <Image
+                                    src="/images/berhasil.png"
+                                    alt="Logo Berhasil"
+                                    width={80}
+                                    height={80}
+                                />
+                                <div className="mt-2">Berhasil</div>
+                            </DialogTitle>
+                            <DialogDescription className="text-base text-black font-medium">
+                                {/* Sedikit modifikasi pesan agar lebih sesuai */}
+                                Berhasil Hapus Peserta Terpilih
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="grid grid-cols-1 gap-4">
+                            <DialogClose asChild>
+                                <Button className="w-full text-white bg-[#749221]" variant="outline">
+                                    Tutup
+                                </Button>
+                            </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </main>
         </div>
     );
