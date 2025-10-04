@@ -159,13 +159,6 @@ export default function DashboardPage() {
                                             </TableRow>
                                         ))
                                     )}
-                                    {/* <TableRow className='border-[#E4E4E4]'>
-                                        <TableCell>5</TableCell>
-                                        <TableCell>Ujian E</TableCell>
-                                        <TableCell>12</TableCell>
-                                        <TableCell>1</TableCell>
-                                        <TableCell>199</TableCell>
-                                    </TableRow> */}
                                 </TableBody>
                             </Table>
                         </div>

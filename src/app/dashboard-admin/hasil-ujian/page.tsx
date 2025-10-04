@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { HapusPeserta } from "./hapus/page";
+import Link from "next/link";
 
 const data_peserta_initial = [
     { id: '1', no: 1, username: 'asep123', nama_ujian: 'Ujian A', mulai: '01/10/2025 10:00:00', selesai: '01/10/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
@@ -47,7 +48,7 @@ const data_peserta_initial = [
 ];
 
 
-export default function DashboardPage() {
+export default function HasilUjian() {
     const [peserta, setPeserta] = React.useState(data_peserta_initial);
 
     // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
@@ -280,7 +281,9 @@ export default function DashboardPage() {
                                             <TableCell>{row.jumlah_soal}</TableCell>
                                             <TableCell>{row.terjawab}</TableCell>
                                             <TableCell className='text-center'>
-                                                <FileCheck size={18} className="inline mr-2 cursor-pointer" />
+                                                <Link href={`/dashboard-admin/hasil-ujian/detail/${row.id}`}>
+                                                    <FileCheck size={18} className="inline mr-2 cursor-pointer" />
+                                                </Link>
                                                 <HapusPeserta pesertaId={row.id} onHapus={handleHapusPeserta} />
                                             </TableCell>
                                         </TableRow>
