@@ -1,0 +1,481 @@
+// @ts-nocheck
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import Sidebar from '@/components/dashboard-admin/Sidebar';
+
+export default function EditSoalPage() {
+  const router = useRouter();
+  const params = useParams();
+  const examId = params.id;
+  const questionId = params.questionId;
+  const [examName, setExamName] = useState('Ujian A');
+  
+  // Form States
+  const [tipeSoal, setTipeSoal] = useState('Gambar');
+  const [soal, setSoal] = useState('');
+  const [soalGambar, setSoalGambar] = useState<File | null>(null);
+  const [soalGambarPreview, setSoalGambarPreview] = useState<string | null>(null);
+  const [jawabanA, setJawabanA] = useState('');
+  const [gambarA, setGambarA] = useState<File | null>(null);
+  const [gambarAPreview, setGambarAPreview] = useState<string | null>(null);
+  const [jawabanB, setJawabanB] = useState('');
+  const [gambarB, setGambarB] = useState<File | null>(null);
+  const [gambarBPreview, setGambarBPreview] = useState<string | null>(null);
+  const [jawabanC, setJawabanC] = useState('');
+  const [gambarC, setGambarC] = useState<File | null>(null);
+  const [gambarCPreview, setGambarCPreview] = useState<string | null>(null);
+  const [jawabanD, setJawabanD] = useState('');
+  const [gambarD, setGambarD] = useState<File | null>(null);
+  const [gambarDPreview, setGambarDPreview] = useState<string | null>(null);
+  const [jawabanE, setJawabanE] = useState('');
+  const [gambarE, setGambarE] = useState<File | null>(null);
+  const [gambarEPreview, setGambarEPreview] = useState<string | null>(null);
+  const [jawabanBenar, setJawabanBenar] = useState('A');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load existing question data
+  useEffect(() => {
+    const loadQuestionData = async () => {
+      try {
+        // TODO: Replace with actual API call
+        // const response = await fetch(`/api/questions/${questionId}`);
+        // const data = await response.json();
+        
+        // Mock data - replace with actual API data
+        const mockQuestion = {
+          tipeSoal: 'Gambar',
+          soal: 'Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin.',
+          soalGambar: 'https://via.placeholder.com/400x200',
+          jawaban: {
+            A: '#1231',
+            B: '#1232',
+            C: '#1233',
+            D: '#1234',
+            E: '#1235',
+          },
+          gambarJawaban: {
+            A: 'https://via.placeholder.com/200x100',
+            B: null,
+            C: null,
+            D: null,
+            E: null,
+          },
+          jawabanBenar: 'D',
+        };
+
+        // Populate form with existing data
+        setTipeSoal(mockQuestion.tipeSoal);
+        setSoal(mockQuestion.soal);
+        setSoalGambarPreview(mockQuestion.soalGambar);
+        setJawabanA(mockQuestion.jawaban.A);
+        setJawabanB(mockQuestion.jawaban.B);
+        setJawabanC(mockQuestion.jawaban.C);
+        setJawabanD(mockQuestion.jawaban.D);
+        setJawabanE(mockQuestion.jawaban.E);
+        setGambarAPreview(mockQuestion.gambarJawaban.A);
+        setGambarBPreview(mockQuestion.gambarJawaban.B);
+        setGambarCPreview(mockQuestion.gambarJawaban.C);
+        setGambarDPreview(mockQuestion.gambarJawaban.D);
+        setGambarEPreview(mockQuestion.gambarJawaban.E);
+        setJawabanBenar(mockQuestion.jawabanBenar);
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error loading question data:', error);
+        setIsLoading(false);
+      }
+    };
+
+    loadQuestionData();
+  }, [questionId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!soal.trim()) {
+      alert('Soal harus diisi');
+      return;
+    }
+
+    // TODO: Replace with actual API call
+    // const formData = new FormData();
+    // formData.append('tipeSoal', tipeSoal);
+    // formData.append('soal', soal);
+    // if (soalGambar) formData.append('soalGambar', soalGambar);
+    // ... append all form data
+    
+    // const response = await fetch(`/api/questions/${questionId}`, {
+    //   method: 'PUT',
+    //   body: formData
+    // });
+
+    console.log('Updating question:', {
+      questionId,
+      tipeSoal,
+      soal,
+      jawaban: { A: jawabanA, B: jawabanB, C: jawabanC, D: jawabanD, E: jawabanE },
+      jawabanBenar,
+    });
+
+    // Navigate back to edit page with soal tab
+    router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+  };
+
+  const handleBack = () => {
+    router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+  };
+
+  const handleFileChange = (
+    file: File | null,
+    setFile: (file: File | null) => void,
+    setPreview: (preview: string | null) => void
+  ) => {
+    setFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="flex h-screen items-center justify-center">
+            <div className="text-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-[#41366E] mx-auto mb-4"></div>
+              <p className="font-inter text-gray-600">Memuat data soal...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
+      
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-6 py-8">
+          {/* Header */}
+          <div className="mb-8 flex items-center gap-4">
+            <button
+              onClick={handleBack}
+              className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-[#41366E] bg-white text-[#41366E] transition-all hover:bg-[#41366E] hover:text-white shadow-sm"
+              aria-label="Kembali"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="font-heading text-3xl font-bold text-[#41366E]">
+                Edit Soal {examName}
+              </h1>
+              <p className="mt-1 font-inter text-sm text-gray-600">
+                Edit soal yang sudah ada dengan mengubah form di bawah
+              </p>
+            </div>
+          </div>
+
+          {/* Form Card */}
+          <form onSubmit={handleSubmit} className="rounded-xl bg-white p-8 shadow-md border border-gray-200">
+            <div className="space-y-8">
+              {/* Tipe Soal Dropdown */}
+              <div>
+                <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                  Tipe Soal
+                </label>
+                <div className="relative">
+                  <select
+                    value={tipeSoal}
+                    onChange={(e) => setTipeSoal(e.target.value)}
+                    className="w-full appearance-none rounded-lg border-2 border-gray-300 bg-white px-4 py-3 pr-10 font-inter text-sm text-gray-900 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
+                  >
+                    <option value="Gambar">Gambar</option>
+                    <option value="Teks">Teks</option>
+                    <option value="Video">Video</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Soal - Rich Text Editor Placeholder */}
+              <div>
+                <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                  Soal
+                </label>
+                <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all">
+                  {/* Toolbar */}
+                  <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-2">
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Left">
+                      <span className="text-sm font-semibold text-gray-700">≡</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Center">
+                      <span className="text-sm font-semibold text-gray-700">≣</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Right">
+                      <span className="text-sm font-semibold text-gray-700">☰</span>
+                    </button>
+                    <div className="mx-1 h-6 w-px bg-gray-300"></div>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bullet List">
+                      <span className="text-sm font-semibold text-gray-700">⚏</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bold">
+                      <span className="text-sm font-bold text-gray-700">B</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Underline">
+                      <span className="text-sm font-semibold text-gray-700">U</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Text Color">
+                      <span className="text-sm text-gray-700">A</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Paragraph">
+                      <span className="text-sm text-gray-700">P</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Script">
+                      <span className="text-sm text-gray-700">ℬ</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Heading">
+                      <span className="text-sm text-gray-700">H</span>
+                    </button>
+                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Italic">
+                      <span className="text-sm italic text-gray-700">I</span>
+                    </button>
+                  </div>
+                  {/* Text Area */}
+                  <textarea
+                    value={soal}
+                    onChange={(e) => setSoal(e.target.value)}
+                    rows={6}
+                    className="w-full bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none resize-none"
+                    placeholder="Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin."
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Soal Gambar (Optional) */}
+              <div>
+                <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                  Soal Gambar (Opsional)
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(
+                      e.target.files?.[0] || null,
+                      setSoalGambar,
+                      setSoalGambarPreview
+                    )}
+                    className="hidden"
+                    id="soal-gambar"
+                  />
+                  <label
+                    htmlFor="soal-gambar"
+                    className="flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 transition-all hover:border-[#41366E] hover:bg-purple-50"
+                  >
+                    <div className="text-center">
+                      {soalGambarPreview ? (
+                        <div className="space-y-2">
+                          <img 
+                            src={soalGambarPreview} 
+                            alt="Preview" 
+                            className="mx-auto max-h-48 rounded-lg object-contain"
+                          />
+                          <p className="font-inter text-sm font-medium text-gray-700">
+                            {soalGambar ? soalGambar.name : 'Gambar saat ini'}
+                          </p>
+                          <p className="font-inter text-xs text-gray-500">
+                            Klik untuk mengganti gambar
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-200">
+                            <ImageIcon className="h-7 w-7 text-gray-500" />
+                          </div>
+                          <p className="font-inter text-sm font-medium text-gray-700 mb-1">
+                            {soalGambar ? soalGambar.name : 'Klik untuk upload gambar'}
+                          </p>
+                          <p className="font-inter text-xs text-gray-500">
+                            PNG, JPG hingga 5MB
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Answer Options A-E */}
+              <div className="space-y-8">
+                {[
+                  { label: 'A', value: jawabanA, setValue: setJawabanA, gambar: gambarA, setGambar: setGambarA, preview: gambarAPreview, setPreview: setGambarAPreview },
+                  { label: 'B', value: jawabanB, setValue: setJawabanB, gambar: gambarB, setGambar: setGambarB, preview: gambarBPreview, setPreview: setGambarBPreview },
+                  { label: 'C', value: jawabanC, setValue: setJawabanC, gambar: gambarC, setGambar: setGambarC, preview: gambarCPreview, setPreview: setGambarCPreview },
+                  { label: 'D', value: jawabanD, setValue: setJawabanD, gambar: gambarD, setGambar: setGambarD, preview: gambarDPreview, setPreview: setGambarDPreview },
+                  { label: 'E', value: jawabanE, setValue: setJawabanE, gambar: gambarE, setGambar: setGambarE, preview: gambarEPreview, setPreview: setGambarEPreview },
+                ].map((option) => (
+                  <div key={option.label} className="rounded-xl border-2 border-gray-200 bg-gray-50 p-6">
+                    {/* Jawaban Text */}
+                    <div className="mb-4">
+                      <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                        Jawaban {option.label}
+                      </label>
+                      <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all bg-white">
+                        {/* Toolbar */}
+                        <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-2">
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm font-semibold text-gray-700">≡</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm font-semibold text-gray-700">≣</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm font-semibold text-gray-700">☰</span>
+                          </button>
+                          <div className="mx-1 h-6 w-px bg-gray-300"></div>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm font-semibold text-gray-700">⚏</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm font-bold text-gray-700">B</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm font-semibold text-gray-700">U</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm text-gray-700">A</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm text-gray-700">P</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm text-gray-700">ℬ</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm text-gray-700">H</span>
+                          </button>
+                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                            <span className="text-sm italic text-gray-700">I</span>
+                          </button>
+                        </div>
+                        {/* Input */}
+                        <input
+                          type="text"
+                          value={option.value}
+                          onChange={(e) => option.setValue(e.target.value)}
+                          className="w-full bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                          placeholder={`#123${option.label.charCodeAt(0) - 64}`}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Gambar (Optional) */}
+                    <div>
+                      <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                        Gambar {option.label} (Opsional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(
+                            e.target.files?.[0] || null,
+                            option.setGambar,
+                            option.setPreview
+                          )}
+                          className="hidden"
+                          id={`gambar-${option.label}`}
+                        />
+                        <label
+                          htmlFor={`gambar-${option.label}`}
+                          className="flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-8 transition-all hover:border-[#41366E] hover:bg-purple-50"
+                        >
+                          <div className="text-center">
+                            {option.preview ? (
+                              <div className="space-y-2">
+                                <img 
+                                  src={option.preview} 
+                                  alt={`Preview ${option.label}`} 
+                                  className="mx-auto max-h-32 rounded-lg object-contain"
+                                />
+                                <p className="font-inter text-sm font-medium text-gray-700">
+                                  {option.gambar ? option.gambar.name : 'Gambar saat ini'}
+                                </p>
+                                <p className="font-inter text-xs text-gray-500">
+                                  Klik untuk mengganti
+                                </p>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                                  <ImageIcon className="h-5 w-5 text-gray-500" />
+                                </div>
+                                <p className="font-inter text-sm font-medium text-gray-700">
+                                  {option.gambar ? option.gambar.name : 'No file chosen'}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Jawaban Benar Dropdown */}
+              <div>
+                <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                  Jawaban Benar
+                </label>
+                <div className="relative">
+                  <select
+                    value={jawabanBenar}
+                    onChange={(e) => setJawabanBenar(e.target.value)}
+                    className="w-full appearance-none rounded-lg border-2 border-gray-300 bg-white px-4 py-3 pr-10 font-inter text-sm text-gray-900 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
+                    required
+                  >
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="mt-8 flex justify-end gap-4 border-t border-gray-200 pt-6">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="rounded-lg bg-gray-600 px-8 py-3 font-heading text-base font-semibold text-white shadow-md transition-all hover:bg-gray-700 active:scale-95"
+              >
+                Kembali
+              </button>
+              <button
+                type="submit"
+                className="rounded-lg bg-[#41366E] px-8 py-3 font-heading text-base font-semibold text-white shadow-md transition-all hover:bg-[#2f2752] hover:shadow-lg active:scale-95"
+              >
+                Simpan Perubahan
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  );
+}

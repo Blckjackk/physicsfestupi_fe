@@ -17,18 +17,38 @@
  * - Responsive table with pagination
  */
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
 import { 
   Search, 
   Plus, 
-  Edit2, 
-  Trash2, 
+  Pencil, 
+  Trash, 
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CheckCircle,
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
+
+type ExamForm = {
+  nama: string;
+  durasi: number;
+  deskripsi: string;
+  mulai: string;
+  akhir: string;
+  jumlahSoal: number;
+};
+
+type AlertState = {
+  show: boolean;
+  type: 'success' | 'error';
+  title: string;
+  message: string;
+};
 
 // Sample data
 const sampleExams = [
@@ -46,6 +66,7 @@ const ITEMS_PER_PAGE = 7;
 export default function ExamManagementPage() {
   // CONFIGURATION: Toggle this to show/hide exam count card
   const showExamCountCard = true;
+  const router = useRouter();
 
   // State management
   const [exams, setExams] = useState(sampleExams);
@@ -54,6 +75,7 @@ export default function ExamManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [alert, setAlert] = useState<AlertState>({ show: false, type: 'success', title: '', message: '' });
 
   // Filtered and paginated data
   const filteredExams = useMemo(() => {
@@ -88,15 +110,77 @@ export default function ExamManagementPage() {
   };
 
   const handleDeleteSelected = () => {
-    setExams(exams.filter(e => !selectedIds.has(e.id)));
-    setSelectedIds(new Set());
-    setShowDeleteModal(false);
+    try {
+      setExams(exams.filter(e => !selectedIds.has(e.id)));
+      setSelectedIds(new Set());
+      setShowDeleteModal(false);
+      // Show success alert
+      setAlert({
+        show: true,
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Berhasil hapus ujian'
+      });
+    } catch (error) {
+      setAlert({
+        show: true,
+        type: 'error',
+        title: 'Error!',
+        message: 'Gagal menghapus ujian'
+      });
+    }
   };
 
   const handleDeleteOne = (id: number) => {
-    setExams(exams.filter(e => e.id !== id));
-    selectedIds.delete(id);
-    setSelectedIds(new Set(selectedIds));
+    try {
+      setExams(exams.filter(e => e.id !== id));
+      selectedIds.delete(id);
+      setSelectedIds(new Set(selectedIds));
+      // Show success alert
+      setAlert({
+        show: true,
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Berhasil hapus ujian'
+      });
+    } catch (error) {
+      setAlert({
+        show: true,
+        type: 'error',
+        title: 'Error!',
+        message: 'Gagal menghapus ujian'
+      });
+    }
+  };
+
+  const handleAddExam = (formData: ExamForm) => {
+    try {
+      const newExam = {
+        id: Math.max(...exams.map(e => e.id)) + 1,
+        ...formData
+      };
+      setExams([...exams, newExam]);
+      setShowAddModal(false);
+      // Show success alert
+      setAlert({
+        show: true,
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Berhasil menambah ujian'
+      });
+    } catch (error) {
+      setAlert({
+        show: true,
+        type: 'error',
+        title: 'Error!',
+        message: 'Gagal menambah ujian'
+      });
+    }
+  };
+
+  const handleOpenEditPage = (exam: any) => {
+    // Redirect to edit page
+    router.push(`/manajemen-soal/edit/${exam.id}`);
   };
 
   const isAllSelected = paginatedExams.length > 0 && selectedIds.size === paginatedExams.length;
@@ -122,73 +206,72 @@ export default function ExamManagementPage() {
             <ExamCountCard count={exams.length} />
           )}
 
-          {/* Search & Actions Bar */}
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <SearchBar 
-              value={searchQuery} 
-              onChange={setSearchQuery} 
-            />
-            <div className="flex items-center gap-3">
+          {/* Add Exam Button - Above Table */}
+          <div className="mb-4 flex justify-end">
+            <AddExamButton onClick={() => setShowAddModal(true)} />
+          </div>
+
+          {/* Main Container - Search + Table */}
+          <div className="rounded-[28px] border border-[#524D59] bg-white p-8 shadow-md">
+            {/* Search Bar and Delete Button */}
+            <div className="mb-6 flex items-center gap-4">
+              <SearchBar 
+                value={searchQuery} 
+                onChange={setSearchQuery} 
+              />
               <DeleteSelectedButton 
                 count={selectedIds.size}
                 onClick={() => setShowDeleteModal(true)}
                 disabled={selectedIds.size === 0}
               />
             </div>
-          </div>
-
-          {/* Table Container */}
-          <div className="relative">
-            {/* Add Exam Button - Floating */}
-            <AddExamButton onClick={() => setShowAddModal(true)} />
 
             {/* Table */}
-            <div className="rounded-[14px] bg-white p-5 shadow-[0_10px_25px_rgba(15,15,15,0.06)]">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="w-12 py-4 text-left">
-                        <Checkbox 
-                          checked={isAllSelected}
-                          onChange={handleSelectAll}
-                          aria-label="Select all exams"
-                        />
-                      </th>
-                      <th className="px-4 py-4 text-left font-inter text-sm font-semibold text-gray-700">No.</th>
-                      <th className="px-4 py-4 text-left font-inter text-sm font-semibold text-gray-700">Nama Ujian</th>
-                      <th className="px-4 py-4 text-left font-inter text-sm font-semibold text-gray-700">Durasi</th>
-                      <th className="px-4 py-4 text-left font-inter text-sm font-semibold text-gray-700">Deskripsi</th>
-                      <th className="px-4 py-4 text-left font-inter text-sm font-semibold text-gray-700">Waktu Mulai</th>
-                      <th className="px-4 py-4 text-left font-inter text-sm font-semibold text-gray-700">Waktu Berakhir</th>
-                      <th className="px-4 py-4 text-left font-inter text-sm font-semibold text-gray-700">Jumlah Soal</th>
-                      <th className="px-4 py-4 text-center font-inter text-sm font-semibold text-gray-700">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedExams.map((exam, index) => (
-                      <ExamTableRow 
-                        key={exam.id}
-                        exam={exam}
-                        number={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                        selected={selectedIds.has(exam.id)}
-                        onSelect={() => handleSelectOne(exam.id)}
-                        onDelete={() => handleDeleteOne(exam.id)}
+            <div className="overflow-hidden rounded-lg border border-[#E4E4E4]">
+              <table className="w-full text-center text-black">
+                <thead>
+                  <tr className="border-b border-[#E4E4E4]">
+                    <th className="py-3.5 text-center">
+                      <Checkbox 
+                        checked={isAllSelected}
+                        onChange={handleSelectAll}
+                        aria-label="Select all exams"
                       />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Pagination 
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              )}
+                    </th>
+                    <th className="px-4 py-3.5 text-center font-inter text-sm font-semibold text-black">No.</th>
+                    <th className="px-4 py-3.5 text-center font-inter text-sm font-semibold text-black">Nama Ujian</th>
+                    <th className="px-4 py-3.5 text-center font-inter text-sm font-semibold text-black">Durasi</th>
+                    <th className="px-4 py-3.5 text-center font-inter text-sm font-semibold text-black">Deskripsi</th>
+                    <th className="px-4 py-3.5 text-center font-inter text-sm font-semibold text-black">Waktu Mulai</th>
+                    <th className="px-4 py-3.5 text-center font-inter text-sm font-semibold text-black">Waktu Berakhir</th>
+                    <th className="px-4 py-3.5 text-center font-inter text-sm font-semibold text-black">Jumlah Soal</th>
+                    <th className="px-4 py-3.5 text-center font-inter text-sm font-semibold text-black">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedExams.map((exam, index) => (
+                    <ExamTableRow 
+                      key={exam.id}
+                      exam={exam}
+                      number={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                      selected={selectedIds.has(exam.id)}
+                      onSelect={() => handleSelectOne(exam.id)}
+                      onEdit={() => handleOpenEditPage(exam)}
+                      onDelete={() => handleDeleteOne(exam.id)}
+                    />
+                  ))}
+                </tbody>
+              </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
           </div>
         </div>
       </main>
@@ -202,9 +285,22 @@ export default function ExamManagementPage() {
         />
       )}
 
-      {showAddModal && (
-        <AddExamModal onClose={() => setShowAddModal(false)} />
-      )}
+      {/* Add Exam Modal */}
+      <ExamFormModal 
+        show={showAddModal}
+        mode="add"
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleAddExam}
+      />
+
+      {/* Alert Notification */}
+      <AlertNotification 
+        show={alert.show}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onClose={() => setAlert({ ...alert, show: false })}
+      />
     </div>
   );
 }
@@ -213,18 +309,18 @@ export default function ExamManagementPage() {
 
 function ExamCountCard({ count }: { count: number }) {
   return (
-    <div className="mb-6 inline-flex items-center gap-6 rounded-lg bg-white px-6 py-4 shadow-sm">
+    <div className="mb-6 inline-flex items-center gap-5 rounded-[16px] bg-white px-6 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.08)]">
       <div>
-        <p className="mb-1 font-inter text-sm text-gray-600">Jumlah Ujian</p>
+        <p className="mb-2 font-inter text-sm font-medium text-gray-600">Jumlah Ujian</p>
         <p className="font-poppins text-5xl font-bold text-[#41366E]">{count}</p>
       </div>
-      <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-[#fefefe]">
+      <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[12px] bg-[#41366E]">
         <Image 
           src="/images/user-friends.png"
           alt="Jumlah Ujian Icon"
           width={64}
           height={64}
-          className="h-12 w-12"
+          className="h-10 w-10 brightness-0 invert"
         />
       </div>
     </div>
@@ -233,15 +329,17 @@ function ExamCountCard({ count }: { count: number }) {
 
 function SearchBar({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   return (
-    <div className="relative flex-1 max-w-md">
-      <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+    <div className="relative w-6/12">
       <input
-        type="text"
-        placeholder="Search Nama Ujian"
+        type="search"
+        placeholder="Cari Nama Ujian"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-full border border-gray-200 bg-white py-2.5 pl-12 pr-4 font-inter text-sm text-gray-700 placeholder:text-gray-400 focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
+        className="w-full rounded-[28px] border border-gray-300 bg-white py-2 pl-4 pr-10 font-inter text-sm text-black placeholder:text-[#524D59] focus:border-[#41366E] focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
       />
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+        <Search className="h-5 w-5 text-[#524D59]" />
+      </div>
     </div>
   );
 }
@@ -251,13 +349,13 @@ function DeleteSelectedButton({ count, onClick, disabled }: { count: number; onC
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg px-4 py-2.5 font-inter text-sm font-semibold transition-all ${
+      className={`rounded-[10px] px-5 py-2 font-heading text-base font-medium transition-all ${
         disabled
           ? 'cursor-not-allowed bg-gray-200 text-gray-400'
-          : 'bg-[#D94343] text-white shadow-md hover:bg-[#c73939] hover:shadow-lg'
+          : 'bg-[#CD1F1F] text-white hover:bg-[#b01919]'
       }`}
     >
-      Hapus Pilih {count > 0 && `(${count})`}
+      Hapus Pilih ({count})
     </button>
   );
 }
@@ -266,7 +364,7 @@ function AddExamButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="absolute -top-16 right-0 z-10 flex items-center gap-2 rounded-lg bg-[#41366E] px-5 py-2.5 font-inter text-sm font-semibold text-white shadow-lg transition-all hover:bg-[#2f2752] hover:shadow-xl"
+      className="flex items-center gap-2 rounded-[10px] bg-[#41366E] px-5 py-2.5 font-heading text-base font-medium text-white transition-all hover:bg-[#2f2752]"
     >
       <Plus className="h-5 w-5" />
       Tambah Ujian
@@ -282,14 +380,14 @@ function Checkbox({ checked, onChange, ariaLabel }: { checked: boolean; onChange
       aria-checked={checked}
       aria-label={ariaLabel}
       onClick={onChange}
-      className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+      className={`flex h-4 w-4 items-center justify-center rounded-sm border transition-all ${
         checked
           ? 'border-[#41366E] bg-[#41366E]'
-          : 'border-gray-300 bg-white hover:border-[#41366E]'
+          : 'border-input bg-background hover:border-[#41366E]'
       }`}
     >
       {checked && (
-        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+        <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       )}
@@ -302,41 +400,42 @@ function ExamTableRow({
   number, 
   selected, 
   onSelect, 
+  onEdit,
   onDelete 
 }: { 
   exam: any; 
   number: number; 
   selected: boolean; 
   onSelect: () => void; 
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
-    <tr className={`border-b border-gray-100 transition-all hover:-translate-y-0.5 hover:shadow-sm ${selected ? 'bg-purple-50/30' : ''}`}>
-      <td className="py-4">
+    <tr className={`border-b border-[#E4E4E4] ${selected ? 'bg-purple-50/50' : ''}`}>
+      <td className="py-3.5 text-center">
         <Checkbox checked={selected} onChange={onSelect} ariaLabel={`Select ${exam.nama}`} />
       </td>
-      <td className="px-4 py-4 font-inter text-sm text-gray-600">{number}</td>
-      <td className="px-4 py-4 font-inter text-sm text-gray-800">{exam.nama}</td>
-      <td className="px-4 py-4 font-inter text-sm text-gray-600">{exam.durasi}</td>
-      <td className="px-4 py-4 font-inter text-sm text-gray-600">{exam.deskripsi}</td>
-      <td className="px-4 py-4 font-inter text-sm text-gray-600">{exam.mulai}</td>
-      <td className="px-4 py-4 font-inter text-sm text-gray-600">{exam.akhir}</td>
-      <td className="px-4 py-4 font-inter text-sm text-gray-600">{exam.jumlahSoal}</td>
-      <td className="px-4 py-4">
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{number}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.nama}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.durasi}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.deskripsi}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.mulai}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.akhir}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.jumlahSoal}</td>
+      <td className="px-4 py-3.5 text-center">
         <div className="flex items-center justify-center gap-2">
-          <button
-            className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-[#41366E]"
+          <Pencil 
+            size={18} 
+            onClick={onEdit}
+            className="inline cursor-pointer"
             aria-label="Edit exam"
-          >
-            <Edit2 className="h-4 w-4" />
-          </button>
-          <button
+          />
+          <Trash 
+            size={18} 
             onClick={onDelete}
-            className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-red-50 hover:text-[#D94343]"
+            className="inline cursor-pointer"
             aria-label="Delete exam"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          />
         </div>
       </td>
     </tr>
@@ -345,15 +444,15 @@ function ExamTableRow({
 
 function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
   return (
-    <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4">
-      <p className="font-inter text-sm text-gray-600">
+    <div className="mt-4 flex items-center justify-between border-t border-[#E4E4E4] pt-4">
+      <p className="font-inter text-sm text-black">
         Halaman {currentPage} dari {totalPages}
       </p>
       <div className="flex items-center gap-2">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#524D59] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -361,7 +460,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: nu
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#524D59] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Next page"
         >
           <ChevronRight className="h-4 w-4" />
@@ -429,6 +528,251 @@ function AddExamModal({ onClose }: { onClose: () => void }) {
         <button
           onClick={onClose}
           className="w-full rounded-lg bg-[#41366E] px-4 py-2.5 font-inter text-sm font-semibold text-white transition-colors hover:bg-[#2f2752]"
+        >
+          Tutup
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ExamFormModal Component (Add Only - Edit uses separate page)
+function ExamFormModal({ 
+  show, 
+  mode,
+  onClose,
+  onSubmit 
+}: { 
+  show: boolean; 
+  mode: 'add';
+  onClose: () => void;
+  onSubmit: (data: ExamForm) => void;
+}) {
+  const [formData, setFormData] = React.useState<ExamForm>({
+    nama: '',
+    durasi: 0, // Hidden field, default value
+    deskripsi: '',
+    mulai: '',
+    akhir: '',
+    jumlahSoal: 0 // Hidden field, default value
+  });
+
+  React.useEffect(() => {
+    // Reset form when modal opens
+    if (show) {
+      setFormData({
+        nama: '',
+        durasi: 0,
+        deskripsi: '',
+        mulai: '',
+        akhir: '',
+        jumlahSoal: 0
+      });
+    }
+  }, [show]);
+
+  if (!show) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.nama.trim()) {
+      alert('Nama ujian harus diisi');
+      return;
+    }
+
+    onSubmit(formData);
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header with Close Button */}
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-poppins text-xl font-bold text-gray-900">
+            Tambah Ujian
+          </h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <p className="mb-6 font-inter text-sm text-gray-600">
+          Silahkan Isi Data Ujian
+        </p>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Nama Ujian */}
+          <div>
+            <label className="mb-2 block font-inter text-sm font-semibold text-gray-700">
+              Nama Ujian
+            </label>
+            <input
+              type="text"
+              value={formData.nama}
+              onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+              placeholder="Ujian A"
+            />
+          </div>
+
+          {/* Deskripsi */}
+          <div>
+            <label className="mb-2 block font-inter text-sm font-semibold text-gray-700">
+              Deskripsi
+            </label>
+            <textarea
+              value={formData.deskripsi}
+              onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
+              rows={4}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+              placeholder="Ujian ini adalah ujian chunnin"
+            />
+          </div>
+
+          {/* Waktu Mulai Pengerjaan */}
+          <div>
+            <label className="mb-2 block font-inter text-sm font-semibold text-gray-700">
+              Waktu Mulai Pengerjaan
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.mulai}
+                onChange={(e) => setFormData({ ...formData, mulai: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+                placeholder="dd/mm/yy --:--"
+              />
+              <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+
+          {/* Waktu Akhir Pengerjaan */}
+          <div>
+            <label className="mb-2 block font-inter text-sm font-semibold text-gray-700">
+              Waktu Akhir Pengerjaan
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.akhir}
+                onChange={(e) => setFormData({ ...formData, akhir: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+                placeholder="dd/mm/yy --:--"
+              />
+              <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-lg bg-[#4a4a4a] px-4 py-2.5 font-inter text-sm font-semibold text-white transition-colors hover:bg-[#3a3a3a]"
+            >
+              Kembali
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-lg bg-[#7C5FA7] px-4 py-2.5 font-inter text-sm font-semibold text-white transition-colors hover:bg-[#6b4f91]"
+            >
+              Tambah
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// AlertNotification Component
+function AlertNotification({ 
+  show, 
+  type,
+  title,
+  message,
+  onClose 
+}: { 
+  show: boolean; 
+  type: 'success' | 'error';
+  title: string;
+  message: string;
+  onClose: () => void;
+}) {
+  if (!show) return null;
+
+  const config = {
+    success: {
+      iconBgColor: 'bg-[#82962C]',
+      iconBorderColor: 'border-[#9CAD3F]',
+      buttonBg: 'bg-[#82962C]',
+      buttonHover: 'hover:bg-[#6d7d25]'
+    },
+    error: {
+      iconBgColor: 'bg-[#D32F2F]',
+      iconBorderColor: 'border-[#E57373]',
+      buttonBg: 'bg-[#D32F2F]',
+      buttonHover: 'hover:bg-[#b02525]'
+    }
+  };
+
+  const { iconBgColor, iconBorderColor, buttonBg, buttonHover } = config[type];
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Icon */}
+        <div className="mb-6 flex justify-center">
+          <div className={`flex h-24 w-24 items-center justify-center rounded-full border-8 ${iconBorderColor} ${iconBgColor}`}>
+            {type === 'success' ? (
+              <svg className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <X className="h-12 w-12 text-white" strokeWidth={3} />
+            )}
+          </div>
+        </div>
+
+        {/* Title */}
+        <h3 className="mb-3 text-center font-poppins text-xl font-bold text-gray-900">
+          {title}
+        </h3>
+
+        {/* Message */}
+        <p className="mb-6 text-center font-inter text-sm text-gray-600">
+          {message}
+        </p>
+
+        {/* Button */}
+        <button
+          onClick={onClose}
+          className={`w-full rounded-lg ${buttonBg} px-4 py-3 font-inter text-sm font-semibold text-white transition-colors ${buttonHover}`}
         >
           Tutup
         </button>

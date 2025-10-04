@@ -1,0 +1,363 @@
+// @ts-nocheck
+'use client';
+
+/**
+ * TambahSoalPage Component
+ * 
+ * Halaman untuk menambahkan soal baru ke ujian
+ * Route: /manajemen-soal/edit/[id]/tambah-soal
+ * 
+ * Production-ready dengan Google Form style interface
+ */
+
+import React, { useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Sidebar from '@/components/dashboard-admin/Sidebar';
+import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
+
+export default function TambahSoalPage() {
+  const router = useRouter();
+  const params = useParams();
+  const examId = params.id;
+
+  // Mock exam name - in production, fetch from API
+  const examName = 'Ujian A';
+
+  // Form state
+  const [tipeSoal, setTipeSoal] = useState('Gambar');
+  const [soal, setSoal] = useState('');
+  const [soalGambar, setSoalGambar] = useState<File | null>(null);
+  const [jawabanA, setJawabanA] = useState('');
+  const [gambarA, setGambarA] = useState<File | null>(null);
+  const [jawabanB, setJawabanB] = useState('');
+  const [gambarB, setGambarB] = useState<File | null>(null);
+  const [jawabanC, setJawabanC] = useState('');
+  const [gambarC, setGambarC] = useState<File | null>(null);
+  const [jawabanD, setJawabanD] = useState('');
+  const [gambarD, setGambarD] = useState<File | null>(null);
+  const [jawabanE, setJawabanE] = useState('');
+  const [gambarE, setGambarE] = useState<File | null>(null);
+  const [jawabanBenar, setJawabanBenar] = useState('D');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!soal.trim()) {
+      alert('Soal harus diisi');
+      return;
+    }
+
+    if (!jawabanA || !jawabanB || !jawabanC || !jawabanD || !jawabanE) {
+      alert('Semua jawaban (A-E) harus diisi');
+      return;
+    }
+
+    try {
+      // Simulate API call
+      const formData = new FormData();
+      formData.append('tipeSoal', tipeSoal);
+      formData.append('soal', soal);
+      if (soalGambar) formData.append('soalGambar', soalGambar);
+      formData.append('jawabanA', jawabanA);
+      if (gambarA) formData.append('gambarA', gambarA);
+      formData.append('jawabanB', jawabanB);
+      if (gambarB) formData.append('gambarB', gambarB);
+      formData.append('jawabanC', jawabanC);
+      if (gambarC) formData.append('gambarC', gambarC);
+      formData.append('jawabanD', jawabanD);
+      if (gambarD) formData.append('gambarD', gambarD);
+      formData.append('jawabanE', jawabanE);
+      if (gambarE) formData.append('gambarE', gambarE);
+      formData.append('jawabanBenar', jawabanBenar);
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Success - redirect back to edit page, Soal Ujian tab
+      alert('Soal berhasil ditambahkan');
+      router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+    } catch (error) {
+      alert('Gagal menambahkan soal');
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-8 py-8">
+          {/* Header */}
+          <div className="mb-8 flex items-center gap-4">
+            <button
+              onClick={() => router.push(`/manajemen-soal/edit/${examId}?tab=soal`)}
+              className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-[#41366E] bg-white text-[#41366E] transition-all hover:bg-[#41366E] hover:text-white"
+              aria-label="Kembali ke Edit Ujian"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+            <div>
+              <h1 className="font-heading text-4xl font-bold text-[#41366e]">
+                Tambah Soal {examName}
+              </h1>
+              <p className="mt-1 font-inter text-base text-gray-600">
+                Isi form di bawah untuk menambahkan soal baru
+              </p>
+            </div>
+          </div>
+
+          {/* Form Card */}
+          <form onSubmit={handleSubmit}>
+            <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
+              <div className="space-y-8">
+                {/* Tipe Soal Dropdown */}
+                <div>
+                  <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                    Tipe Soal
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={tipeSoal}
+                      onChange={(e) => setTipeSoal(e.target.value)}
+                      className="w-full appearance-none rounded-lg border-2 border-gray-300 bg-white px-4 py-3 pr-10 font-inter text-sm text-gray-900 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
+                    >
+                      <option value="Gambar">Gambar</option>
+                      <option value="Teks">Teks</option>
+                      <option value="Video">Video</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Soal - Rich Text Editor Placeholder */}
+                <div>
+                  <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                    Soal
+                  </label>
+                  <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all">
+                    {/* Toolbar */}
+                    <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-2">
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Left">
+                        <span className="text-sm font-semibold text-gray-700">≡</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Center">
+                        <span className="text-sm font-semibold text-gray-700">≣</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Right">
+                        <span className="text-sm font-semibold text-gray-700">☰</span>
+                      </button>
+                      <div className="mx-1 h-6 w-px bg-gray-300"></div>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bullet List">
+                        <span className="text-sm font-semibold text-gray-700">⚏</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bold">
+                        <span className="text-sm font-bold text-gray-700">B</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Underline">
+                        <span className="text-sm font-semibold text-gray-700">U</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Text Color">
+                        <span className="text-sm text-gray-700">A</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Paragraph">
+                        <span className="text-sm text-gray-700">P</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Script">
+                        <span className="text-sm text-gray-700">ℬ</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Heading">
+                        <span className="text-sm text-gray-700">H</span>
+                      </button>
+                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Italic">
+                        <span className="text-sm italic text-gray-700">I</span>
+                      </button>
+                    </div>
+                    {/* Text Area */}
+                    <textarea
+                      value={soal}
+                      onChange={(e) => setSoal(e.target.value)}
+                      rows={6}
+                      className="w-full bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none resize-none"
+                      placeholder="Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin."
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Soal Gambar (Optional) */}
+                <div>
+                  <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                    Soal Gambar (Opsional)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setSoalGambar(e.target.files?.[0] || null)}
+                      className="hidden"
+                      id="soal-gambar"
+                    />
+                    <label
+                      htmlFor="soal-gambar"
+                      className="flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 transition-all hover:border-[#41366E] hover:bg-purple-50"
+                    >
+                      <div className="text-center">
+                        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-200">
+                          <ImageIcon className="h-7 w-7 text-gray-500" />
+                        </div>
+                        <p className="font-inter text-sm font-medium text-gray-700 mb-1">
+                          {soalGambar ? soalGambar.name : 'Klik untuk upload gambar'}
+                        </p>
+                        <p className="font-inter text-xs text-gray-500">
+                          PNG, JPG hingga 5MB
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Answer Options A-E */}
+                <div className="space-y-8">
+                  {[
+                    { label: 'A', value: jawabanA, setValue: setJawabanA, gambar: gambarA, setGambar: setGambarA },
+                    { label: 'B', value: jawabanB, setValue: setJawabanB, gambar: gambarB, setGambar: setGambarB },
+                    { label: 'C', value: jawabanC, setValue: setJawabanC, gambar: gambarC, setGambar: setGambarC },
+                    { label: 'D', value: jawabanD, setValue: setJawabanD, gambar: gambarD, setGambar: setGambarD },
+                    { label: 'E', value: jawabanE, setValue: setJawabanE, gambar: gambarE, setGambar: setGambarE },
+                  ].map((option) => (
+                    <div key={option.label} className="rounded-xl border-2 border-gray-200 bg-gray-50 p-6">
+                      {/* Jawaban Text */}
+                      <div className="mb-4">
+                        <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                          Jawaban {option.label}
+                        </label>
+                        <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all bg-white">
+                          {/* Toolbar */}
+                          <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-2">
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm font-semibold text-gray-700">≡</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm font-semibold text-gray-700">≣</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm font-semibold text-gray-700">☰</span>
+                            </button>
+                            <div className="mx-1 h-6 w-px bg-gray-300"></div>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm font-semibold text-gray-700">⚏</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm font-bold text-gray-700">B</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm font-semibold text-gray-700">U</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm text-gray-700">A</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm text-gray-700">P</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm text-gray-700">ℬ</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm text-gray-700">H</span>
+                            </button>
+                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                              <span className="text-sm italic text-gray-700">I</span>
+                            </button>
+                          </div>
+                          {/* Input */}
+                          <input
+                            type="text"
+                            value={option.value}
+                            onChange={(e) => option.setValue(e.target.value)}
+                            className="w-full bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                            placeholder="#1231"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Gambar (Optional) */}
+                      <div>
+                        <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                          Gambar {option.label} (Opsional)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => option.setGambar(e.target.files?.[0] || null)}
+                            className="hidden"
+                            id={`gambar-${option.label}`}
+                          />
+                          <label
+                            htmlFor={`gambar-${option.label}`}
+                            className="flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-8 transition-all hover:border-[#41366E] hover:bg-purple-50"
+                          >
+                            <div className="text-center">
+                              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                                <ImageIcon className="h-5 w-5 text-gray-500" />
+                              </div>
+                              <p className="font-inter text-sm font-medium text-gray-700">
+                                {option.gambar ? option.gambar.name : 'No file chosen'}
+                              </p>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Jawaban Benar Dropdown */}
+                <div>
+                  <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                    Jawaban Benar
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={jawabanBenar}
+                      onChange={(e) => setJawabanBenar(e.target.value)}
+                      className="w-full appearance-none rounded-lg border-2 border-gray-300 bg-white px-4 py-3 pr-10 font-inter text-sm text-gray-900 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
+                      required
+                    >
+                      <option value="D">D</option>
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                      <option value="E">E</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="mt-8 flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => router.push(`/manajemen-soal/edit/${examId}?tab=soal`)}
+                className="rounded-lg bg-gray-600 px-8 py-3 font-heading text-base font-semibold text-white shadow-md transition-all hover:bg-gray-700 active:scale-95"
+              >
+                Kembali
+              </button>
+              <button
+                type="submit"
+                className="rounded-lg bg-[#41366E] px-8 py-3 font-heading text-base font-semibold text-white shadow-md transition-all hover:bg-[#2f2752] hover:shadow-lg active:scale-95"
+              >
+                Tambah
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  );
+}
