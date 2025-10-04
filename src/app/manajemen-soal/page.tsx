@@ -4,23 +4,22 @@
 /**
  * ExamManagementPage Component
  * 
- * DEVELOPER NOTES:
- * - Toggle `showExamCountCard` boolean (line ~50) to show/hide the exam count card
- * - Sample data in `sampleExams` - replace with real API call
- * - Pagination size controlled by `ITEMS_PER_PAGE` constant
- * - Font families: Poppins (heading), Inter (body) - ensure imported in layout
+ * DINAMISASI: Menggunakan AdminUjianService dari mockData.ts
+ * Data disimpan di localStorage untuk simulasi backend
  * 
- * QC NOTES IMPLEMENTED:
- * - Sidebar active state with left indicator bar
- * - Exam count card conditionally rendered based on showExamCountCard
- * - Delete selected with confirmation modal
- * - Responsive table with pagination
+ * FEATURES:
+ * - CRUD ujian (Create, Read, Update, Delete)
+ * - Search ujian by nama
+ * - Pagination
+ * - Bulk delete dengan confirmation
+ * - Alert notifications
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
+import { AdminUjianService, initializeLocalStorage, type Ujian } from '@/lib/mockData';
 import { 
   Search, 
   Plus, 
@@ -40,7 +39,6 @@ type ExamForm = {
   deskripsi: string;
   mulai: string;
   akhir: string;
-  jumlahSoal: number;
 };
 
 type AlertState = {
@@ -50,17 +48,6 @@ type AlertState = {
   message: string;
 };
 
-// Sample data
-const sampleExams = [
-  { id: 1, nama: 'Ujian A', durasi: 100, deskripsi: 'Ini adalah ujian chunnin', mulai: 'dd/mm/yy 20:00', akhir: 'dd/mm/yy 21:00', jumlahSoal: 100 },
-  { id: 2, nama: 'Ujian A', durasi: 100, deskripsi: 'Ini adalah ujian chunnin', mulai: 'dd/mm/yy 20:00', akhir: 'dd/mm/yy 21:00', jumlahSoal: 100 },
-  { id: 3, nama: 'Ujian A', durasi: 100, deskripsi: 'Ini adalah ujian chunnin', mulai: 'dd/mm/yy 20:00', akhir: 'dd/mm/yy 21:00', jumlahSoal: 100 },
-  { id: 4, nama: 'Ujian A', durasi: 100, deskripsi: 'Ini adalah ujian chunnin', mulai: 'dd/mm/yy 20:00', akhir: 'dd/mm/yy 21:00', jumlahSoal: 100 },
-  { id: 5, nama: 'Ujian A', durasi: 100, deskripsi: 'Ini adalah ujian chunnin', mulai: 'dd/mm/yy 20:00', akhir: 'dd/mm/yy 21:00', jumlahSoal: 100 },
-  { id: 6, nama: 'Ujian A', durasi: 100, deskripsi: 'Ini adalah ujian chunnin', mulai: 'dd/mm/yy 20:00', akhir: 'dd/mm/yy 21:00', jumlahSoal: 100 },
-  { id: 7, nama: 'Ujian A', durasi: 100, deskripsi: 'Ini adalah ujian chunnin', mulai: 'dd/mm/yy 20:00', akhir: 'dd/mm/yy 21:00', jumlahSoal: 100 },
-];
-
 const ITEMS_PER_PAGE = 7;
 
 export default function ExamManagementPage() {
@@ -69,13 +56,24 @@ export default function ExamManagementPage() {
   const router = useRouter();
 
   // State management
-  const [exams, setExams] = useState(sampleExams);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [exams, setExams] = useState<Ujian[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ show: false, type: 'success', title: '', message: '' });
+
+  // Load ujian data on mount
+  useEffect(() => {
+    initializeLocalStorage();
+    loadExams();
+  }, []);
+
+  const loadExams = () => {
+    const allExams = AdminUjianService.getAllUjian();
+    setExams(allExams);
+  };
 
   // Filtered and paginated data
   const filteredExams = useMemo(() => {
@@ -91,6 +89,7 @@ export default function ExamManagementPage() {
   }, [filteredExams, currentPage]);
 
   // Handlers
+  // Handlers
   const handleSelectAll = () => {
     if (selectedIds.size === paginatedExams.length) {
       setSelectedIds(new Set());
@@ -99,7 +98,7 @@ export default function ExamManagementPage() {
     }
   };
 
-  const handleSelectOne = (id: number) => {
+  const handleSelectOne = (id: string) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(id)) {
       newSet.delete(id);
@@ -111,16 +110,27 @@ export default function ExamManagementPage() {
 
   const handleDeleteSelected = () => {
     try {
-      setExams(exams.filter(e => !selectedIds.has(e.id)));
-      setSelectedIds(new Set());
-      setShowDeleteModal(false);
-      // Show success alert
-      setAlert({
-        show: true,
-        type: 'success',
-        title: 'Berhasil',
-        message: 'Berhasil hapus ujian'
-      });
+      const idsArray = Array.from(selectedIds);
+      const deletedCount = AdminUjianService.deleteMultipleUjian(idsArray);
+      
+      if (deletedCount > 0) {
+        loadExams();
+        setSelectedIds(new Set());
+        setShowDeleteModal(false);
+        setAlert({
+          show: true,
+          type: 'success',
+          title: 'Berhasil',
+          message: `Berhasil menghapus ${deletedCount} ujian`
+        });
+      } else {
+        setAlert({
+          show: true,
+          type: 'error',
+          title: 'Error!',
+          message: 'Tidak ada ujian yang dihapus'
+        });
+      }
     } catch (error) {
       setAlert({
         show: true,
@@ -131,18 +141,27 @@ export default function ExamManagementPage() {
     }
   };
 
-  const handleDeleteOne = (id: number) => {
+  const handleDeleteOne = (id: string) => {
     try {
-      setExams(exams.filter(e => e.id !== id));
-      selectedIds.delete(id);
-      setSelectedIds(new Set(selectedIds));
-      // Show success alert
-      setAlert({
-        show: true,
-        type: 'success',
-        title: 'Berhasil',
-        message: 'Berhasil hapus ujian'
-      });
+      const success = AdminUjianService.deleteUjian(id);
+      if (success) {
+        loadExams();
+        selectedIds.delete(id);
+        setSelectedIds(new Set(selectedIds));
+        setAlert({
+          show: true,
+          type: 'success',
+          title: 'Berhasil',
+          message: 'Berhasil menghapus ujian'
+        });
+      } else {
+        setAlert({
+          show: true,
+          type: 'error',
+          title: 'Error!',
+          message: 'Ujian tidak ditemukan'
+        });
+      }
     } catch (error) {
       setAlert({
         show: true,
@@ -155,13 +174,16 @@ export default function ExamManagementPage() {
 
   const handleAddExam = (formData: ExamForm) => {
     try {
-      const newExam = {
-        id: Math.max(...exams.map(e => e.id)) + 1,
-        ...formData
-      };
-      setExams([...exams, newExam]);
+      const newUjian = AdminUjianService.addUjian({
+        nama: formData.nama,
+        durasi: formData.durasi || 60,
+        deskripsi: formData.deskripsi,
+        status: 'belum_mulai',
+        soal: []
+      });
+      
+      loadExams();
       setShowAddModal(false);
-      // Show success alert
       setAlert({
         show: true,
         type: 'success',
@@ -178,7 +200,7 @@ export default function ExamManagementPage() {
     }
   };
 
-  const handleOpenEditPage = (exam: any) => {
+  const handleOpenEditPage = (exam: Ujian) => {
     // Redirect to edit page
     router.push(`/manajemen-soal/edit/${exam.id}`);
   };
@@ -403,7 +425,7 @@ function ExamTableRow({
   onEdit,
   onDelete 
 }: { 
-  exam: any; 
+  exam: Ujian; 
   number: number; 
   selected: boolean; 
   onSelect: () => void; 
@@ -417,23 +439,23 @@ function ExamTableRow({
       </td>
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{number}</td>
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.nama}</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.durasi}</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.deskripsi}</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.mulai}</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.akhir}</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.jumlahSoal}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.durasi} menit</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.deskripsi || '-'}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">-</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">-</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.soal.length}</td>
       <td className="px-4 py-3.5 text-center">
         <div className="flex items-center justify-center gap-2">
           <Pencil 
             size={18} 
             onClick={onEdit}
-            className="inline cursor-pointer"
+            className="inline cursor-pointer hover:text-[#41366E] transition-colors"
             aria-label="Edit exam"
           />
           <Trash 
             size={18} 
             onClick={onDelete}
-            className="inline cursor-pointer"
+            className="inline cursor-pointer hover:text-red-600 transition-colors"
             aria-label="Delete exam"
           />
         </div>
@@ -582,7 +604,10 @@ function ExamFormModal({
       return;
     }
 
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      durasi: formData.durasi || 60 // Default 60 menit
+    });
   };
 
   return (

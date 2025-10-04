@@ -3,9 +3,10 @@
 
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AlertModal, { AlertType } from "@/components/ui/alert-modal";
+import { AuthService, initializeLocalStorage } from "@/lib/mockData";
 
 type FieldErrors = {
   username?: string;
@@ -39,6 +40,19 @@ export default function LoginAdminPage() {
     message: "",
   });
 
+  // Initialize localStorage on mount
+  useEffect(() => {
+    initializeLocalStorage();
+    
+    // Redirect jika sudah login
+    if (AuthService.isAuthenticated()) {
+      const user = AuthService.getCurrentUser();
+      if (user?.role === 'admin') {
+        router.push('/dashboard-admin');
+      }
+    }
+  }, [router]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors: FieldErrors = {};
@@ -59,44 +73,53 @@ export default function LoginAdminPage() {
     setIsSubmitting(true);
 
     try {
-      // Simulasi API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Simulasi API call delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // ===== SIMULASI KONDISI LOGIN (Ganti dengan API response sesungguhnya) =====
-      const loginStatus = simulateLoginCondition(username, password);
+      // Coba login menggunakan mock data
+      const user = AuthService.login(username, password);
 
-      switch (loginStatus) {
-        case "error":
-          // 1. Alert Error: Username atau Password Salah
-          setAlert({
-            isOpen: true,
-            type: "error",
-            title: "Error!",
-            message: "Username atau Password Salah!",
-            primaryButtonText: "Tutup",
-          });
-          break;
-
-        case "success":
-          // 2. Alert Success: Login Berhasil
-          setAlert({
-            isOpen: true,
-            type: "success",
-            title: "Berhasil",
-            message: "Anda akan diarahkan ke dashboard admin.",
-            primaryButtonText: "Lanjut",
-            secondaryButtonText: "Kembali",
-            onPrimaryClick: () => {
-              setAlert({ ...alert, isOpen: false });
-              router.push("/dashboard-admin");
-            },
-          });
-          break;
-
-        default:
-          break;
+      if (!user) {
+        // 1. Alert Error: Username atau Password Salah
+        setAlert({
+          isOpen: true,
+          type: "error",
+          title: "Error!",
+          message: "Username atau Password Salah!",
+          primaryButtonText: "Tutup",
+        });
+        return;
       }
+
+      // Cek role user
+      if (user.role !== 'admin') {
+        setAlert({
+          isOpen: true,
+          type: "error",
+          title: "Error!",
+          message: "Halaman ini hanya untuk admin. Silakan gunakan halaman login peserta.",
+          primaryButtonText: "Tutup",
+        });
+        AuthService.logout();
+        return;
+      }
+
+      // 2. Alert Success: Login Berhasil
+      setAlert({
+        isOpen: true,
+        type: "success",
+        title: "Berhasil",
+        message: `Selamat datang ${user.nama || user.username}! Anda akan diarahkan ke dashboard admin.`,
+        primaryButtonText: "Lanjut",
+        secondaryButtonText: "Kembali",
+        onPrimaryClick: () => {
+          setAlert({ ...alert, isOpen: false });
+          router.push("/dashboard-admin");
+        },
+      });
+
     } catch (error) {
+      console.error('Login error:', error);
       setAlert({
         isOpen: true,
         type: "error",
@@ -104,18 +127,9 @@ export default function LoginAdminPage() {
         message: "Terjadi kesalahan. Silakan coba lagi.",
         primaryButtonText: "Tutup",
       });
+      AuthService.logout();
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // ===== SIMULASI KONDISI LOGIN (Hapus setelah integrasi API) =====
-  const simulateLoginCondition = (username: string, password: string) => {
-    // Contoh logic untuk testing:
-    if (username === "salah" || password === "salah") {
-      return "error"; // Username/password salah
-    } else {
-      return "success"; // Login berhasil
     }
   };
 

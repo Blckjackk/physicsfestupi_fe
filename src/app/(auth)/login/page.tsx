@@ -3,9 +3,10 @@
 
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AlertModal, { AlertType } from "@/components/ui/alert-modal";
+import { AuthService, ExamService, initializeLocalStorage } from "@/lib/mockData";
 
 type FieldErrors = {
   username?: string;
@@ -39,6 +40,21 @@ export default function LoginPage() {
     message: "",
   });
 
+  // Initialize localStorage on mount
+  useEffect(() => {
+    initializeLocalStorage();
+    
+    // Redirect jika sudah login
+    if (AuthService.isAuthenticated()) {
+      const user = AuthService.getCurrentUser();
+      if (user?.role === 'peserta') {
+        router.push('/exam');
+      } else if (user?.role === 'admin') {
+        router.push('/dashboard-admin');
+      }
+    }
+  }, [router]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors: FieldErrors = {};
@@ -59,68 +75,128 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      // Simulasi API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Simulasi API call delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // ===== SIMULASI KONDISI LOGIN (Ganti dengan API response sesungguhnya) =====
-      const loginStatus = simulateLoginCondition(username, password);
+      // Coba login menggunakan mock data
+      const user = AuthService.login(username, password);
 
-      switch (loginStatus) {
-        case "error":
-          // 1. Alert Error: Username atau Password Salah
-          setAlert({
-            isOpen: true,
-            type: "error",
-            title: "Error!",
-            message: "Username atau Password Salah!",
-            primaryButtonText: "Tutup",
-          });
-          break;
-
-        case "success":
-          // 2. Alert Success: Login Berhasil
-          setAlert({
-            isOpen: true,
-            type: "success",
-            title: "Berhasil",
-            message: "Ujian akan segera dimulai. Waktu Anda:",
-            showTimer: true,
-            timerText: "1 Jam 30 Menit",
-            primaryButtonText: "Lanjut",
-            secondaryButtonText: "Kembali",
-            onPrimaryClick: () => {
-              setAlert({ ...alert, isOpen: false });
-              router.push("/exam");
-            },
-          });
-          break;
-
-        case "warning":
-          // 3. Alert Warning: Waktu Ujian Belum Dimulai
-          setAlert({
-            isOpen: true,
-            type: "warning",
-            title: "Peringatan",
-            message: "Waktu Ujian Belum Dimulai",
-            primaryButtonText: "Tutup",
-          });
-          break;
-
-        case "done":
-          // 4. Alert Info: Soal Sudah Dikerjakan
-          setAlert({
-            isOpen: true,
-            type: "info",
-            title: "Info",
-            message: "Anda Sudah Mengerjakan Soal!",
-            primaryButtonText: "Tutup",
-          });
-          break;
-
-        default:
-          break;
+      if (!user) {
+        // 1. Alert Error: Username atau Password Salah
+        setAlert({
+          isOpen: true,
+          type: "error",
+          title: "Error!",
+          message: "Username atau Password Salah!",
+          primaryButtonText: "Tutup",
+        });
+        return;
       }
+
+      // Cek role user
+      if (user.role !== 'peserta') {
+        setAlert({
+          isOpen: true,
+          type: "error",
+          title: "Error!",
+          message: "Halaman ini hanya untuk peserta. Silakan gunakan halaman login admin.",
+          primaryButtonText: "Tutup",
+        });
+        AuthService.logout();
+        return;
+      }
+
+      // Cek apakah user punya ujian
+      if (!user.ujianId) {
+        setAlert({
+          isOpen: true,
+          type: "warning",
+          title: "Peringatan",
+          message: "Anda belum terdaftar dalam ujian manapun.",
+          primaryButtonText: "Tutup",
+        });
+        AuthService.logout();
+        return;
+      }
+
+      // Get ujian data
+      const ujian = ExamService.getUjian(user.ujianId);
+      
+      if (!ujian) {
+        setAlert({
+          isOpen: true,
+          type: "error",
+          title: "Error!",
+          message: "Data ujian tidak ditemukan.",
+          primaryButtonText: "Tutup",
+        });
+        AuthService.logout();
+        return;
+      }
+
+      // Cek status ujian
+      if (ujian.status === 'belum_mulai') {
+        setAlert({
+          isOpen: true,
+          type: "warning",
+          title: "Peringatan",
+          message: "Waktu Ujian Belum Dimulai",
+          primaryButtonText: "Tutup",
+        });
+        AuthService.logout();
+        return;
+      }
+
+      if (ujian.status === 'selesai') {
+        setAlert({
+          isOpen: true,
+          type: "info",
+          title: "Info",
+          message: "Waktu ujian telah berakhir.",
+          primaryButtonText: "Tutup",
+        });
+        AuthService.logout();
+        return;
+      }
+
+      // Cek apakah sudah mengerjakan
+      const existingJawaban = ExamService.getJawaban(user.id, ujian.id);
+      if (existingJawaban && existingJawaban.waktuSelesai) {
+        setAlert({
+          isOpen: true,
+          type: "info",
+          title: "Info",
+          message: "Anda Sudah Mengerjakan Soal!",
+          primaryButtonText: "Tutup",
+        });
+        AuthService.logout();
+        return;
+      }
+
+      // 2. Alert Success: Login Berhasil
+      const durasiJam = Math.floor(ujian.durasi / 60);
+      const durasiMenit = ujian.durasi % 60;
+      const waktuText = durasiJam > 0 
+        ? `${durasiJam} Jam ${durasiMenit > 0 ? durasiMenit + ' Menit' : ''}` 
+        : `${durasiMenit} Menit`;
+
+      setAlert({
+        isOpen: true,
+        type: "success",
+        title: "Berhasil",
+        message: `Selamat datang ${user.nama || user.username}! Ujian akan segera dimulai. Waktu Anda:`,
+        showTimer: true,
+        timerText: waktuText,
+        primaryButtonText: "Lanjut",
+        secondaryButtonText: "Kembali",
+        onPrimaryClick: () => {
+          setAlert({ ...alert, isOpen: false });
+          router.push("/exam");
+        },
+      });
+
     } catch (error) {
+      console.error('Login error:', error);
       setAlert({
         isOpen: true,
         type: "error",
@@ -128,22 +204,9 @@ export default function LoginPage() {
         message: "Terjadi kesalahan. Silakan coba lagi.",
         primaryButtonText: "Tutup",
       });
+      AuthService.logout();
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // ===== SIMULASI KONDISI LOGIN (Hapus setelah integrasi API) =====
-  const simulateLoginCondition = (username: string, password: string) => {
-    // Contoh logic untuk testing:
-    if (username === "salah" || password === "salah") {
-      return "error"; // Username/password salah
-    } else if (username === "belum") {
-      return "warning"; // Waktu ujian belum dimulai
-    } else if (username === "sudah") {
-      return "done"; // Soal sudah dikerjakan
-    } else {
-      return "success"; // Login berhasil
     }
   };
 

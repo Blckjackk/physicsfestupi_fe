@@ -4,73 +4,59 @@
 /**
  * EditExamPage Component
  * 
+ * DINAMISASI: Menggunakan AdminUjianService dari mockData.ts
  * Halaman untuk mengedit ujian yang sudah ada
  * Diakses melalui route: /manajemen-soal/edit/[id]
- * 
- * Production-ready dengan struktur modular dan styling lengkap
  */
 
-import React, { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
+import { AdminUjianService, type Ujian, type Soal } from '@/lib/mockData';
 import { ArrowLeft, Calendar, Pencil, Trash, Plus, X, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 
 type ExamForm = {
   nama: string;
   deskripsi: string;
-  mulai: string;
-  akhir: string;
-  jumlahSoal: number;
+  durasi: number;
 };
-
-// Mock data for questions
-const sampleQuestions = [
-  {
-    id: 1,
-    soal: 'Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin.',
-    jawaban: ['Gaya yang ditunjukkan dinamometer adalah 12 N, troli bergerak dengan percepatan.', 'Setelah beberapa saat, siswa memanbankan beban 2 kg di atas troli dan menariknya kembali dengan gaya yang sama (12 N).'],
-    opsiBenar: 'A. Rp8.250',
-    gambar: '/images/example-chart.png',
-    opsi: [
-      { label: 'A', text: 'Rp8.250', gambar: '/images/graph-a.png' },
-      { label: 'B', text: 'Rp8.250', gambar: '/images/graph-b.png' },
-      { label: 'C', text: 'Rp8.250', gambar: '/images/graph-c.png' },
-      { label: 'D', text: 'Rp8.250', gambar: null },
-      { label: 'E', text: 'Rp8.250', gambar: null },
-    ]
-  },
-  {
-    id: 2,
-    soal: 'Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin.',
-    jawaban: ['Gaya yang ditunjukkan dinamometer adalah 12 N, troli bergerak dengan percepatan.', 'Setelah beberapa saat, siswa memanbankan beban 2 kg di atas troli dan menariknya kembali dengan gaya yang sama (12 N).'],
-    opsiBenar: 'D',
-    gambar: null,
-    opsi: [
-      { label: 'A', text: 'Rp8.250', gambar: null },
-      { label: 'B', text: 'Rp8.250', gambar: null },
-      { label: 'C', text: 'Rp8.250', gambar: null },
-      { label: 'D', text: 'Rp8.250', gambar: null },
-      { label: 'E', text: 'Rp8.250', gambar: null },
-    ]
-  },
-];
 
 export default function EditExamPage() {
   const router = useRouter();
   const params = useParams();
-  const examId = params.id;
+  const searchParams = useSearchParams();
+  const examId = params.id as string;
 
-  // Mock data - in production, fetch from API based on examId
+  const [ujian, setUjian] = useState<Ujian | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState<ExamForm>({
-    nama: 'Ujian A',
-    deskripsi: 'Ini adalah ujian chunnin',
-    mulai: 'dd/mm/yy --:--',
-    akhir: 'dd/mm/yy --:--',
-    jumlahSoal: 100
+    nama: '',
+    deskripsi: '',
+    durasi: 60
   });
 
-  const [activeTab, setActiveTab] = useState<'info' | 'soal'>('info');
+  // Check for tab parameter from URL
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'info' | 'soal'>(tabParam === 'soal' ? 'soal' : 'info');
+
+  // Load ujian data on mount
+  useEffect(() => {
+    loadUjian();
+  }, [examId]);
+
+  const loadUjian = () => {
+    const ujianData = AdminUjianService.getUjianById(examId);
+    if (ujianData) {
+      setUjian(ujianData);
+      setFormData({
+        nama: ujianData.nama,
+        deskripsi: ujianData.deskripsi || '',
+        durasi: ujianData.durasi
+      });
+    }
+    setIsLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,16 +67,60 @@ export default function EditExamPage() {
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Success - redirect back to manajemen soal
-      alert('Ujian berhasil diupdate');
-      router.push('/manajemen-soal');
+      const updated = AdminUjianService.updateUjian(examId, {
+        nama: formData.nama,
+        deskripsi: formData.deskripsi,
+        durasi: formData.durasi
+      });
+
+      if (updated) {
+        alert('Ujian berhasil diupdate');
+        router.push('/manajemen-soal');
+      } else {
+        alert('Ujian tidak ditemukan');
+      }
     } catch (error) {
       alert('Gagal mengupdate ujian');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="flex h-screen items-center justify-center">
+            <div className="text-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-[#41366E] mx-auto mb-4"></div>
+              <p className="font-inter text-gray-600">Memuat data ujian...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!ujian) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="flex h-screen items-center justify-center">
+            <div className="text-center">
+              <h2 className="font-heading text-2xl font-bold text-gray-900 mb-2">Ujian tidak ditemukan</h2>
+              <p className="font-inter text-gray-600 mb-6">Ujian dengan ID tersebut tidak ditemukan</p>
+              <button
+                onClick={() => router.push('/manajemen-soal')}
+                className="rounded-lg bg-[#41366E] px-6 py-3 font-heading text-base font-semibold text-white transition-all hover:bg-[#2f2752]"
+              >
+                Kembali ke Manajemen Soal
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -179,53 +209,31 @@ export default function EditExamPage() {
 
                     {/* Right Column */}
                     <div className="space-y-6">
-                      {/* Waktu Mulai */}
+                      {/* Durasi */}
                       <div>
                         <label className="mb-2 block font-inter text-sm font-semibold text-gray-900">
-                          Waktu Mulai
+                          Durasi (menit)
                         </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.mulai}
-                            onChange={(e) => setFormData({ ...formData, mulai: e.target.value })}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pr-10 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
-                            placeholder="dd/mm/yy --:--"
-                          />
-                          <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                        </div>
+                        <input
+                          type="number"
+                          value={formData.durasi}
+                          onChange={(e) => setFormData({ ...formData, durasi: parseInt(e.target.value) || 60 })}
+                          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
+                          placeholder="60"
+                          min="1"
+                          required
+                        />
                       </div>
 
-                      {/* Waktu Akhir */}
-                      <div>
-                        <label className="mb-2 block font-inter text-sm font-semibold text-gray-900">
-                          Waktu Akhir
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.akhir}
-                            onChange={(e) => setFormData({ ...formData, akhir: e.target.value })}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pr-10 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
-                            placeholder="dd/mm/yy --:--"
-                          />
-                          <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                        </div>
-                      </div>
-
-                      {/* Jumlah Soal */}
+                      {/* Jumlah Soal - Read Only */}
                       <div>
                         <label className="mb-2 block font-inter text-sm font-semibold text-gray-900">
                           Jumlah Soal
                         </label>
-                        <input
-                          type="number"
-                          value={formData.jumlahSoal}
-                          onChange={(e) => setFormData({ ...formData, jumlahSoal: parseInt(e.target.value) || 0 })}
-                          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
-                          placeholder="100"
-                          min="0"
-                        />
+                        <div className="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 font-inter text-sm text-gray-600">
+                          {ujian.soal.length} soal
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Tambah atau hapus soal di tab "Soal Ujian"</p>
                       </div>
                     </div>
                   </div>
@@ -259,15 +267,32 @@ export default function EditExamPage() {
 // ============ SOAL UJIAN TAB COMPONENT ============
 function SoalUjianTab({ examId, examName }: { examId: string; examName: string }) {
   const router = useRouter();
-  const [questions, setQuestions] = useState(sampleQuestions);
+  const [questions, setQuestions] = useState<Soal[]>([]);
 
-  const handleDeleteQuestion = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus soal ini?')) {
-      setQuestions(questions.filter(q => q.id !== id));
+  useEffect(() => {
+    loadQuestions();
+  }, [examId]);
+
+  const loadQuestions = () => {
+    const ujian = AdminUjianService.getUjianById(examId);
+    if (ujian) {
+      setQuestions(ujian.soal);
     }
   };
 
-  const handleEditQuestion = (questionId: number) => {
+  const handleDeleteQuestion = (id: string) => {
+    if (confirm('Apakah Anda yakin ingin menghapus soal ini?')) {
+      const success = AdminUjianService.deleteSoal(examId, id);
+      if (success) {
+        loadQuestions();
+        alert('Soal berhasil dihapus');
+      } else {
+        alert('Gagal menghapus soal');
+      }
+    }
+  };
+
+  const handleEditQuestion = (questionId: string) => {
     router.push(`/manajemen-soal/edit/${examId}/edit-soal/${questionId}`);
   };
 
@@ -331,7 +356,7 @@ function QuestionCard({
   onEdit,
   onDelete 
 }: { 
-  question: any; 
+  question: Soal; 
   number: number; 
   onEdit: () => void;
   onDelete: () => void;
@@ -366,45 +391,23 @@ function QuestionCard({
 
       {/* Question Text */}
       <div className="mb-6">
-        <p className="font-inter text-base leading-relaxed text-gray-800">{question.soal}</p>
-        {question.jawaban && question.jawaban.length > 0 && (
-          <ul className="mt-4 space-y-2 pl-5">
-            {question.jawaban.map((item: string, idx: number) => (
-              <li key={idx} className="font-inter text-sm text-gray-700 list-disc">{item}</li>
-            ))}
-          </ul>
-        )}
+        <p className="font-inter text-base leading-relaxed text-gray-800 whitespace-pre-wrap">{question.pertanyaan}</p>
       </div>
-
-      {/* Question Image */}
-      {question.gambar && (
-        <div className="mb-6 flex justify-center">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
-            <Image 
-              src={question.gambar} 
-              alt="Ilustrasi soal"
-              width={400}
-              height={300}
-              className="rounded-lg"
-            />
-          </div>
-        </div>
-      )}
 
       {/* Answer Options */}
       <div className="space-y-4 mb-6">
-        {question.opsi.map((opsi: any) => (
+        {question.opsi.map((opsi) => (
           <div 
             key={opsi.label} 
             className={`flex items-start gap-4 rounded-xl border-2 p-4 transition-all ${
-              question.opsiBenar.includes(opsi.label)
+              question.jawabanBenar === opsi.label
                 ? 'border-[#41366E] bg-[#41366E]/5'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
             <div className="flex-shrink-0">
               <span className={`flex h-10 w-10 items-center justify-center rounded-lg text-base font-bold ${
-                question.opsiBenar.includes(opsi.label) 
+                question.jawabanBenar === opsi.label 
                   ? 'bg-[#41366E] text-white shadow-md' 
                   : 'bg-gray-100 text-gray-700'
               }`}>
@@ -412,18 +415,7 @@ function QuestionCard({
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-inter text-sm text-gray-800">{opsi.text}</p>
-              {opsi.gambar && (
-                <div className="mt-3">
-                  <Image 
-                    src={opsi.gambar} 
-                    alt={`Jawaban ${opsi.label}`}
-                    width={250}
-                    height={180}
-                    className="rounded-lg border border-gray-200 shadow-sm"
-                  />
-                </div>
-              )}
+              <p className="font-inter text-sm text-gray-800">{opsi.teks}</p>
             </div>
           </div>
         ))}
@@ -432,7 +424,7 @@ function QuestionCard({
       {/* Correct Answer Label */}
       <div className="rounded-xl bg-[#41366E] px-6 py-3 text-center shadow-md">
         <span className="font-heading text-base font-semibold text-white">
-          Jawaban : {question.opsiBenar}
+          Jawaban Benar: {question.jawabanBenar}
         </span>
       </div>
     </div>

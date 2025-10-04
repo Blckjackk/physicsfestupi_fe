@@ -10,9 +10,10 @@
  * Production-ready dengan Google Form style interface
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
+import { AdminUjianService } from '@/lib/mockData';
 import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
 
 export default function TambahSoalPage() {
@@ -20,8 +21,15 @@ export default function TambahSoalPage() {
   const params = useParams();
   const examId = params.id;
 
-  // Mock exam name - in production, fetch from API
-  const examName = 'Ujian A';
+  // Load exam name
+  const [examName, setExamName] = useState('');
+  
+  useEffect(() => {
+    const ujian = AdminUjianService.getUjianById(examId as string);
+    if (ujian) {
+      setExamName(ujian.nama);
+    }
+  }, [examId]);
 
   // Form state
   const [tipeSoal, setTipeSoal] = useState('Gambar');
@@ -53,30 +61,27 @@ export default function TambahSoalPage() {
     }
 
     try {
-      // Simulate API call
-      const formData = new FormData();
-      formData.append('tipeSoal', tipeSoal);
-      formData.append('soal', soal);
-      if (soalGambar) formData.append('soalGambar', soalGambar);
-      formData.append('jawabanA', jawabanA);
-      if (gambarA) formData.append('gambarA', gambarA);
-      formData.append('jawabanB', jawabanB);
-      if (gambarB) formData.append('gambarB', gambarB);
-      formData.append('jawabanC', jawabanC);
-      if (gambarC) formData.append('gambarC', gambarC);
-      formData.append('jawabanD', jawabanD);
-      if (gambarD) formData.append('gambarD', gambarD);
-      formData.append('jawabanE', jawabanE);
-      if (gambarE) formData.append('gambarE', gambarE);
-      formData.append('jawabanBenar', jawabanBenar);
+      // Create new soal
+      const newSoal = AdminUjianService.addSoal(examId as string, {
+        pertanyaan: soal,
+        opsi: [
+          { label: 'A', teks: jawabanA },
+          { label: 'B', teks: jawabanB },
+          { label: 'C', teks: jawabanC },
+          { label: 'D', teks: jawabanD },
+          { label: 'E', teks: jawabanE },
+        ],
+        jawabanBenar: jawabanBenar,
+      });
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Success - redirect back to edit page, Soal Ujian tab
-      alert('Soal berhasil ditambahkan');
-      router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+      if (newSoal) {
+        alert('Soal berhasil ditambahkan');
+        router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+      } else {
+        alert('Gagal menambahkan soal - Ujian tidak ditemukan');
+      }
     } catch (error) {
+      console.error('Error adding soal:', error);
       alert('Gagal menambahkan soal');
     }
   };
