@@ -52,7 +52,7 @@ export interface Peserta {
     id: string;
     no: number;
     username: string;
-    password_hash?: string; // Password mungkin tidak selalu ada dari API
+    password?: string; // Password mungkin tidak selalu ada dari API
     ujian: string;
     status: string;
 }
@@ -102,11 +102,13 @@ export default function DashboardPage() {
     const [showStatusBar, setShowStatusBar] = React.useState<Checked>(true)
     const [showActivityBar, setShowActivityBar] = React.useState<Checked>(true)
     const [showPanel, setShowPanel] = React.useState<Checked>(true)
+    const [belumMulai, setBelumMulai] = React.useState<Checked>(true)
 
     const activeStatuses: string[] = [];
     if (showPanel) activeStatuses.push('Belum Login');
     if (showStatusBar) activeStatuses.push('Sedang Ujian');
     if (showActivityBar) activeStatuses.push('Sudah Submit');
+    if (belumMulai) activeStatuses.push('Belum Mulai');
 
     // Gabungkan filter pencarian dan filter status
     const filteredData = peserta.filter(item => {
@@ -199,7 +201,7 @@ export default function DashboardPage() {
                 id: newPesertaFromServer.id.toString(),
                 no: peserta.length + 1, // Ini mungkin perlu disesuaikan jika ada paginasi
                 username: newPesertaFromServer.username,
-                password_hash: formData.password,
+                password: formData.password,
                 ujian: assignedUjian.nama_ujian,
                 status: 'Belum Login', // Sesuai dengan status awal dari API
             };
@@ -216,7 +218,7 @@ export default function DashboardPage() {
 
     const handleEditPeserta = async (pesertaId: string, dataUpdate: PesertaUpdatePayload): Promise<boolean> => {
         try {
-            // Hanya kirim password jika diisi (tidak kosong)
+            // Hanya kirim password jika diisi
             const payload = { ...dataUpdate };
             if (!payload.password) {
                 delete payload.password;
@@ -258,7 +260,7 @@ export default function DashboardPage() {
                         return {
                             ...p,
                             username: dataUpdate.username,
-                            password_hash: dataUpdate.password ? dataUpdate.password : p.password_hash,
+                            password: dataUpdate.password ? dataUpdate.password : p.password,
                             ujian: updatedUjianNama, // ✅ sekarang benar
                         };
                     }
@@ -317,7 +319,7 @@ export default function DashboardPage() {
         setSelectedRows([]);
 
         // Buka dialog sukses
-        setIsSuccessHapusPilihOpen(true); // <-- TAMBAHKAN INI
+        setIsSuccessHapusPilihOpen(true);
     };
 
     return (
@@ -369,6 +371,12 @@ export default function DashboardPage() {
                                             onCheckedChange={setShowPanel}
                                         >
                                             Belum Login
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            checked={belumMulai}
+                                            onCheckedChange={setBelumMulai}
+                                        >
+                                            Belum Mulai
                                         </DropdownMenuCheckboxItem>
                                         <DropdownMenuCheckboxItem
                                             checked={showStatusBar}
@@ -468,7 +476,7 @@ export default function DashboardPage() {
                                                 <TableCell><Checkbox onCheckedChange={(checked) => handleSelectRow(row.id, checked as boolean)} checked={selectedRows.includes(row.id)} /></TableCell>
                                                 <TableCell>{row.no}</TableCell>
                                                 <TableCell>{row.username}</TableCell>
-                                                <TableCell>{row.password_hash}</TableCell>
+                                                <TableCell>{row.password}</TableCell>
                                                 <TableCell>{row.ujian}</TableCell>
                                                 <TableCell>{row.status}</TableCell>
                                                 <TableCell className="flex justify-center gap-2">

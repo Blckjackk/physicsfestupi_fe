@@ -55,7 +55,7 @@ export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
     React.useEffect(() => {
         if (isFormOpen) {
             setUsername(peserta.username);
-            setPassword(peserta.password_hash || ""); // Gunakan string kosong jika password undefined
+            setPassword(peserta.password || ""); // Gunakan string kosong jika password undefined
             setPosition(peserta.ujian);
 
             // Logika baru untuk fetch daftar ujian
