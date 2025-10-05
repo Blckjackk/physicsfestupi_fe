@@ -6,7 +6,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AlertModal, { AlertType } from "@/components/ui/alert-modal";
-import { AuthService, ExamService, initializeLocalStorage } from "@/lib/mockData";
+import { authService } from "@/services/auth.service";
+import { ApiError } from "@/lib/api";
 
 type FieldErrors = {
   username?: string;
@@ -40,19 +41,23 @@ export default function LoginPage() {
     message: "",
   });
 
-  // Initialize localStorage on mount
+  // Clear any stale auth session when login page loads
   useEffect(() => {
-    initializeLocalStorage();
-    
-    // Redirect jika sudah login
-    if (AuthService.isAuthenticated()) {
-      const user = AuthService.getCurrentUser();
-      if (user?.role === 'peserta') {
-        router.push('/exam');
-      } else if (user?.role === 'admin') {
-        router.push('/dashboard-admin');
+    // Don't auto-redirect - always require fresh login
+    // This prevents infinite loop when user is logged out due to "already submitted" error
+    const clearStaleSession = () => {
+      // Only clear if there's indication of failed exam access
+      // Check URL params or session storage for logout reason
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('logout') === 'true' || sessionStorage.getItem('force_logout')) {
+        authService.logout();
+        sessionStorage.removeItem('force_logout');
+        // Clean URL without reload
+        window.history.replaceState({}, document.title, '/login');
       }
-    }
+    };
+    
+    clearStaleSession();
   }, [router]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -75,118 +80,34 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      // Simulasi API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Login via Laravel API
+      const data = await authService.loginPeserta({ username, password });
 
-      // Coba login menggunakan mock data
-      const user = AuthService.login(username, password);
-
-      if (!user) {
-        // 1. Alert Error: Username atau Password Salah
-        setAlert({
-          isOpen: true,
-          type: "error",
-          title: "Error!",
-          message: "Username atau Password Salah!",
-          primaryButtonText: "Tutup",
-        });
-        return;
-      }
-
-      // Cek role user
-      if (user.role !== 'peserta') {
-        setAlert({
-          isOpen: true,
-          type: "error",
-          title: "Error!",
-          message: "Halaman ini hanya untuk peserta. Silakan gunakan halaman login admin.",
-          primaryButtonText: "Tutup",
-        });
-        AuthService.logout();
-        return;
-      }
-
-      // Cek apakah user punya ujian
-      if (!user.ujianId) {
-        setAlert({
-          isOpen: true,
-          type: "warning",
-          title: "Peringatan",
-          message: "Anda belum terdaftar dalam ujian manapun.",
-          primaryButtonText: "Tutup",
-        });
-        AuthService.logout();
-        return;
-      }
-
-      // Get ujian data
-      const ujian = ExamService.getUjian(user.ujianId);
-      
-      if (!ujian) {
-        setAlert({
-          isOpen: true,
-          type: "error",
-          title: "Error!",
-          message: "Data ujian tidak ditemukan.",
-          primaryButtonText: "Tutup",
-        });
-        AuthService.logout();
-        return;
-      }
-
-      // Cek status ujian
-      if (ujian.status === 'belum_mulai') {
-        setAlert({
-          isOpen: true,
-          type: "warning",
-          title: "Peringatan",
-          message: "Waktu Ujian Belum Dimulai",
-          primaryButtonText: "Tutup",
-        });
-        AuthService.logout();
-        return;
-      }
-
-      if (ujian.status === 'selesai') {
+      // Backend now returns aktivitas_ujian with status
+      // Check if peserta already submitted
+      if (data.aktivitas_ujian && data.aktivitas_ujian.status === 'sudah_submit') {
+        // Peserta sudah mengerjakan soal - TOLAK LOGIN
         setAlert({
           isOpen: true,
           type: "info",
-          title: "Info",
-          message: "Waktu ujian telah berakhir.",
+          title: "Info!",
+          message: "Anda Sudah Mengerjakan Soal! Ujian tidak dapat dikerjakan lagi.",
           primaryButtonText: "Tutup",
+          onPrimaryClick: () => {
+            setAlert({ ...alert, isOpen: false });
+            // Clear auth data and stay on login page
+            authService.logout();
+          },
         });
-        AuthService.logout();
-        return;
+        return; // Stop here - don't redirect
       }
 
-      // Cek apakah sudah mengerjakan
-      const existingJawaban = ExamService.getJawaban(user.id, ujian.id);
-      if (existingJawaban && existingJawaban.waktuSelesai) {
-        setAlert({
-          isOpen: true,
-          type: "info",
-          title: "Info",
-          message: "Anda Sudah Mengerjakan Soal!",
-          primaryButtonText: "Tutup",
-        });
-        AuthService.logout();
-        return;
-      }
-
-      // 2. Alert Success: Login Berhasil
-      const durasiJam = Math.floor(ujian.durasi / 60);
-      const durasiMenit = ujian.durasi % 60;
-      const waktuText = durasiJam > 0 
-        ? `${durasiJam} Jam ${durasiMenit > 0 ? durasiMenit + ' Menit' : ''}` 
-        : `${durasiMenit} Menit`;
-
+      // Peserta belum submit - boleh masuk
       setAlert({
         isOpen: true,
         type: "success",
         title: "Berhasil",
-        message: `Selamat datang ${user.nama || user.username}! Ujian akan segera dimulai. Waktu Anda:`,
-        showTimer: true,
-        timerText: waktuText,
+        message: `Selamat datang ${data.peserta.username}! Anda akan diarahkan ke halaman ujian.`,
         primaryButtonText: "Lanjut",
         secondaryButtonText: "Kembali",
         onPrimaryClick: () => {
@@ -197,14 +118,38 @@ export default function LoginPage() {
 
     } catch (error) {
       console.error('Login error:', error);
-      setAlert({
-        isOpen: true,
-        type: "error",
-        title: "Error!",
-        message: "Terjadi kesalahan. Silakan coba lagi.",
-        primaryButtonText: "Tutup",
-      });
-      AuthService.logout();
+      
+      // Only handle errors from login itself, not from exam check
+      // Exam check errors are already handled in the inner catch
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          setAlert({
+            isOpen: true,
+            type: "error",
+            title: "Error!",
+            message: "Username atau Password Salah!",
+            primaryButtonText: "Tutup",
+          });
+        } else {
+          setAlert({
+            isOpen: true,
+            type: "error",
+            title: "Error!",
+            message: error.message || "Terjadi kesalahan. Silakan coba lagi.",
+            primaryButtonText: "Tutup",
+          });
+        }
+      } else {
+        setAlert({
+          isOpen: true,
+          type: "error",
+          title: "Error!",
+          message: "Tidak dapat terhubung ke server. Pastikan backend sedang berjalan.",
+          primaryButtonText: "Tutup",
+        });
+      }
+      
+      authService.logout();
     } finally {
       setIsSubmitting(false);
     }
