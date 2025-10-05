@@ -48,19 +48,19 @@ import Image from "next/image";
 type Checked = DropdownMenuCheckboxItemProps["checked"]
 
 // Definisikan tipe data untuk satu peserta
-interface Peserta {
+export interface Peserta {
     id: string;
     no: number;
     username: string;
-    password?: string; // Password mungkin tidak selalu ada dari API
+    password_hash?: string; // Password mungkin tidak selalu ada dari API
     ujian: string;
     status: string;
 }
 
-type PesertaUpdatePayload = {
+export type PesertaUpdatePayload = {
     username: string;
     password?: string; // Dibuat opsional jika password tidak selalu diubah
-    ujian: string;
+    ujian_id: number;
 };
 
 export default function DashboardPage() {
@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
     const activeStatuses: string[] = [];
     if (showPanel) activeStatuses.push('Belum Login');
-    if (showStatusBar) activeStatuses.push('Sedang Mengerjakan');
+    if (showStatusBar) activeStatuses.push('Sedang Ujian');
     if (showActivityBar) activeStatuses.push('Sudah Submit');
 
     // Gabungkan filter pencarian dan filter status
@@ -199,7 +199,7 @@ export default function DashboardPage() {
                 id: newPesertaFromServer.id.toString(),
                 no: peserta.length + 1, // Ini mungkin perlu disesuaikan jika ada paginasi
                 username: newPesertaFromServer.username,
-                password: '***',
+                password_hash: formData.password,
                 ujian: assignedUjian.nama_ujian,
                 status: 'Belum Login', // Sesuai dengan status awal dari API
             };
@@ -214,27 +214,95 @@ export default function DashboardPage() {
         }
     };
 
-    const handleEditPeserta = (pesertaId: string, dataUpdate: PesertaUpdatePayload) => {
-        setPeserta(prevPeserta =>
-            prevPeserta.map(p => {
-                // Jika ID peserta cocok dengan ID yang akan diupdate
-                if (p.id === pesertaId) {
-                    // Kembalikan data yang sudah digabung dengan data baru
-                    return { ...p, ...dataUpdate };
+    const handleEditPeserta = async (pesertaId: string, dataUpdate: PesertaUpdatePayload): Promise<boolean> => {
+        try {
+            // Hanya kirim password jika diisi (tidak kosong)
+            const payload = { ...dataUpdate };
+            if (!payload.password) {
+                delete payload.password;
+            }
+
+            console.log('Payload to be sent:', payload);
+
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            console.log(payload);
+            const response = await fetch(`${apiBaseUrl}/api/admin/peserta/${pesertaId}`, {
+                method: 'PUT', // Gunakan method PUT
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 422) {
+                    const errors = result.errors;
+                    const errorMessages = Object.values(errors as Record<string, string[]>);
+                    const firstError = errorMessages[0]?.[0];
+                    throw new Error(firstError || 'Data yang dimasukkan tidak valid.');
                 }
-                // Jika tidak cocok, kembalikan data lama tanpa perubahan
-                return p;
-            })
-        );
+                throw new Error(result.message || 'Gagal mengupdate peserta.');
+            }
+
+            // ✅ Ambil nama ujian dari response server
+            const updatedUjianNama = result.data?.ujian_assigned?.nama_ujian || 'Tidak diketahui';
+
+
+            // Jika sukses, update data di state frontend
+            setPeserta(prevPeserta =>
+                prevPeserta.map(p => {
+                    if (p.id === pesertaId) {
+                        return {
+                            ...p,
+                            username: dataUpdate.username,
+                            password_hash: dataUpdate.password ? dataUpdate.password : p.password_hash,
+                            ujian: updatedUjianNama, // ✅ sekarang benar
+                        };
+                    }
+                    return p;
+                })
+            );
+            return true; // Beri tahu child bahwa proses sukses
+
+        } catch (error: any) {
+            // console.error('Error:', error);
+            // alert(`Gagal: ${error.message}`);
+            return false; // Beri tahu child bahwa proses gagal
+        }
     };
 
     const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
-    const handleHapusPeserta = (pesertaId: string) => {
-        // Hapus data dari state peserta
-        setPeserta(prevPeserta => prevPeserta.filter(p => p.id !== pesertaId));
+    const handleHapusPeserta = async (pesertaId: string): Promise<boolean> => {
+        try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            const response = await fetch(`${apiBaseUrl}/api/admin/peserta/${pesertaId}`, {
+                method: 'DELETE', // Gunakan method DELETE
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
 
-        // Buka dialog sukses
-        setIsSuccessOpen(true);
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal menghapus peserta.');
+            }
+
+            // Jika API sukses menghapus, baru update state di frontend
+            setPeserta(prevPeserta => prevPeserta.filter(p => p.id !== pesertaId));
+
+            setIsSuccessOpen(true); // Buka dialog sukses
+
+            return true;
+
+        } catch (error: any) {
+            console.error('Error:', error);
+            alert(`Gagal: ${error.message}`);
+            return false;
+        }
     };
 
     const [isConfirmHapusPilihOpen, setIsConfirmHapusPilihOpen] = React.useState(false);
@@ -306,7 +374,7 @@ export default function DashboardPage() {
                                             checked={showStatusBar}
                                             onCheckedChange={setShowStatusBar}
                                         >
-                                            Sedang Mengerjakan
+                                            Sedang Ujian
                                         </DropdownMenuCheckboxItem>
                                         <DropdownMenuCheckboxItem
                                             checked={showActivityBar}
@@ -400,7 +468,7 @@ export default function DashboardPage() {
                                                 <TableCell><Checkbox onCheckedChange={(checked) => handleSelectRow(row.id, checked as boolean)} checked={selectedRows.includes(row.id)} /></TableCell>
                                                 <TableCell>{row.no}</TableCell>
                                                 <TableCell>{row.username}</TableCell>
-                                                <TableCell>{row.password}</TableCell>
+                                                <TableCell>{row.password_hash}</TableCell>
                                                 <TableCell>{row.ujian}</TableCell>
                                                 <TableCell>{row.status}</TableCell>
                                                 <TableCell className="flex justify-center gap-2">
