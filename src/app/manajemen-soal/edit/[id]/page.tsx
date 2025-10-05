@@ -4,7 +4,7 @@
 /**
  * EditExamPage Component
  * 
- * DINAMISASI: Menggunakan AdminUjianService dari mockData.ts
+ * FULLY INTEGRATED WITH BACKEND API
  * Halaman untuk mengedit ujian yang sudah ada
  * Diakses melalui route: /manajemen-soal/edit/[id]
  */
@@ -12,9 +12,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
-import { AdminUjianService, type Ujian, type Soal } from '@/lib/mockData';
-import { ArrowLeft, Calendar, Pencil, Trash, Plus, X, ChevronDown, Image as ImageIcon } from 'lucide-react';
-import Image from 'next/image';
+import { adminService, type Ujian, type Soal } from '@/services/admin.service';
+import { ArrowLeft, Pencil, Trash, Plus } from 'lucide-react';
 
 type ExamForm = {
   nama: string;
@@ -29,11 +28,12 @@ export default function EditExamPage() {
   const examId = params.id as string;
 
   const [ujian, setUjian] = useState<Ujian | null>(null);
+  const [jumlahSoal, setJumlahSoal] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState<ExamForm>({
     nama: '',
     deskripsi: '',
-    durasi: 60
+    durasi: 0
   });
 
   // Check for tab parameter from URL
@@ -45,20 +45,33 @@ export default function EditExamPage() {
     loadUjian();
   }, [examId]);
 
-  const loadUjian = () => {
-    const ujianData = AdminUjianService.getUjianById(examId);
-    if (ujianData) {
-      setUjian(ujianData);
-      setFormData({
-        nama: ujianData.nama,
-        deskripsi: ujianData.deskripsi || '',
-        durasi: ujianData.durasi
-      });
-    }
-    setIsLoading(false);
-  };
+  const loadUjian = async () => {
+    try {
+      // Fetch ujian data from backend API
+      const ujianList = await adminService.getUjian();
+      const ujianData = ujianList.find(u => u.id === parseInt(examId));
+      
+      if (ujianData) {
+        setUjian(ujianData);
+        setFormData({
+          nama: ujianData.nama_ujian,
+          deskripsi: ujianData.deskripsi || '',
+          durasi: ujianData.durasi
+        });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+        // Fetch real-time jumlah soal from backend
+        // Note: jumlah_soal already included in ujianData from getUjian()
+        setJumlahSoal(ujianData.jumlah_soal || 0);
+      } else {
+        setUjian(null);
+      }
+    } catch (error) {
+      console.error('Failed to load ujian:', error);
+      setUjian(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.nama.trim()) {
@@ -67,19 +80,32 @@ export default function EditExamPage() {
     }
 
     try {
-      const updated = AdminUjianService.updateUjian(examId, {
-        nama: formData.nama,
+      // Get current ujian data to preserve waktu fields
+      const ujianList = await adminService.getUjian();
+      const currentUjian = ujianList.find(u => u.id === parseInt(examId));
+      
+      if (!currentUjian) {
+        alert('Ujian tidak ditemukan');
+        return;
+      }
+
+      // Calculate new waktu_akhir based on durasi
+      const waktuMulai = new Date(currentUjian.waktu_mulai_pengerjaan);
+      const waktuAkhir = new Date(waktuMulai.getTime() + formData.durasi * 60 * 1000);
+
+      // Update via backend API
+      await adminService.updateUjian(parseInt(examId), {
+        nama_ujian: formData.nama,
         deskripsi: formData.deskripsi,
+        waktu_mulai_pengerjaan: currentUjian.waktu_mulai_pengerjaan,
+        waktu_akhir_pengerjaan: waktuAkhir.toISOString(),
         durasi: formData.durasi
       });
 
-      if (updated) {
-        alert('Ujian berhasil diupdate');
-        router.push('/manajemen-soal');
-      } else {
-        alert('Ujian tidak ditemukan');
-      }
+      alert('Ujian berhasil diupdate');
+      router.push('/manajemen-soal');
     } catch (error) {
+      console.error('Failed to update ujian:', error);
       alert('Gagal mengupdate ujian');
     }
   };
@@ -231,7 +257,7 @@ export default function EditExamPage() {
                           Jumlah Soal
                         </label>
                         <div className="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 font-inter text-sm text-gray-600">
-                          {ujian.soal.length} soal
+                          {jumlahSoal}
                         </div>
                         <p className="mt-1 text-xs text-gray-500">Tambah atau hapus soal di tab "Soal Ujian"</p>
                       </div>
@@ -268,31 +294,40 @@ export default function EditExamPage() {
 function SoalUjianTab({ examId, examName }: { examId: string; examName: string }) {
   const router = useRouter();
   const [questions, setQuestions] = useState<Soal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadQuestions();
   }, [examId]);
 
-  const loadQuestions = () => {
-    const ujian = AdminUjianService.getUjianById(examId);
-    if (ujian) {
-      setQuestions(ujian.soal);
+  const loadQuestions = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch real soal from backend API
+      const soalResponse = await adminService.getSoalByUjian(parseInt(examId));
+      setQuestions(soalResponse);
+    } catch (error) {
+      console.error('Failed to fetch soal:', error);
+      setQuestions([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeleteQuestion = (id: string) => {
+  const handleDeleteQuestion = async (id: number) => {
     if (confirm('Apakah Anda yakin ingin menghapus soal ini?')) {
-      const success = AdminUjianService.deleteSoal(examId, id);
-      if (success) {
-        loadQuestions();
+      try {
+        await adminService.deleteSoal(id);
         alert('Soal berhasil dihapus');
-      } else {
+        loadQuestions(); // Refresh list
+      } catch (error) {
+        console.error('Failed to delete soal:', error);
         alert('Gagal menghapus soal');
       }
     }
   };
 
-  const handleEditQuestion = (questionId: string) => {
+  const handleEditQuestion = (questionId: number) => {
     router.push(`/manajemen-soal/edit/${examId}/edit-soal/${questionId}`);
   };
 
@@ -300,13 +335,28 @@ function SoalUjianTab({ examId, examName }: { examId: string; examName: string }
     router.push(`/manajemen-soal/edit/${examId}/tambah-soal`);
   };
 
+  if (isLoading) {
+    return (
+      <div className="p-8 bg-gray-50">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-[#41366E] mx-auto mb-4"></div>
+            <p className="font-inter text-sm text-gray-600">Memuat soal...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 bg-gray-50">
       {/* Header with Tambah Soal Button */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h2 className="font-heading text-2xl font-bold text-gray-900">Daftar Soal</h2>
-          <p className="mt-1 font-inter text-sm text-gray-600">{questions.length} soal tersedia</p>
+          <p className="mt-1 font-inter text-sm text-gray-600">
+            {questions.length} soal tersedia
+          </p>
         </div>
         <button
           onClick={handleTambahSoal}
@@ -361,6 +411,15 @@ function QuestionCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  // Convert backend soal format to display format
+  const opsiList = [
+    { label: 'A', teks: question.opsi_a },
+    { label: 'B', teks: question.opsi_b },
+    { label: 'C', teks: question.opsi_c },
+    { label: 'D', teks: question.opsi_d },
+    { label: 'E', teks: question.opsi_e }
+  ];
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-md transition-all hover:shadow-lg">
       {/* Header */}
@@ -396,18 +455,18 @@ function QuestionCard({
 
       {/* Answer Options */}
       <div className="space-y-4 mb-6">
-        {question.opsi.map((opsi) => (
+        {opsiList.map((opsi) => (
           <div 
             key={opsi.label} 
             className={`flex items-start gap-4 rounded-xl border-2 p-4 transition-all ${
-              question.jawabanBenar === opsi.label
+              question.jawaban_benar.toUpperCase() === opsi.label
                 ? 'border-[#41366E] bg-[#41366E]/5'
                 : 'border-gray-200 bg-white hover:border-gray-300'
             }`}
           >
             <div className="flex-shrink-0">
               <span className={`flex h-10 w-10 items-center justify-center rounded-lg text-base font-bold ${
-                question.jawabanBenar === opsi.label 
+                question.jawaban_benar.toUpperCase() === opsi.label 
                   ? 'bg-[#41366E] text-white shadow-md' 
                   : 'bg-gray-100 text-gray-700'
               }`}>
@@ -424,7 +483,7 @@ function QuestionCard({
       {/* Correct Answer Label */}
       <div className="rounded-xl bg-[#41366E] px-6 py-3 text-center shadow-md">
         <span className="font-heading text-base font-semibold text-white">
-          Jawaban Benar: {question.jawabanBenar}
+          Jawaban Benar: {question.jawaban_benar.toUpperCase()}
         </span>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
-import { AdminUjianService } from '@/lib/mockData';
+import { adminService, type Soal } from '@/services/admin.service';
 
 export default function EditSoalPage() {
   const router = useRouter();
@@ -37,27 +37,31 @@ export default function EditSoalPage() {
   const [jawabanBenar, setJawabanBenar] = useState('A');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load existing question data
+  // Load existing question data from backend
   useEffect(() => {
     const loadQuestionData = async () => {
       try {
         // Load ujian data
-        const ujian = AdminUjianService.getUjianById(examId);
+        const ujianList = await adminService.getUjian();
+        const ujian = ujianList.find(u => u.id === parseInt(examId));
+        
         if (ujian) {
-          setExamName(ujian.nama);
+          setExamName(ujian.nama_ujian);
           
-          // Find the specific question
-          const soal = AdminUjianService.getSoalById(examId, questionId);
+          // Load all soal for this ujian
+          const soalList = await adminService.getSoalByUjian(parseInt(examId));
+          const soal = soalList.find(s => s.id === parseInt(questionId));
+          
           if (soal) {
-            // Populate form with existing data
-            setTipeSoal('Teks'); // Default for now
+            // Populate form with existing data from backend
+            setTipeSoal(soal.tipe_soal === 'gambar' ? 'Gambar' : 'Teks');
             setSoal(soal.pertanyaan);
-            setJawabanA(soal.opsi.find(o => o.label === 'A')?.teks || '');
-            setJawabanB(soal.opsi.find(o => o.label === 'B')?.teks || '');
-            setJawabanC(soal.opsi.find(o => o.label === 'C')?.teks || '');
-            setJawabanD(soal.opsi.find(o => o.label === 'D')?.teks || '');
-            setJawabanE(soal.opsi.find(o => o.label === 'E')?.teks || '');
-            setJawabanBenar(soal.jawabanBenar);
+            setJawabanA(soal.opsi_a);
+            setJawabanB(soal.opsi_b);
+            setJawabanC(soal.opsi_c);
+            setJawabanD(soal.opsi_d);
+            setJawabanE(soal.opsi_e);
+            setJawabanBenar(soal.jawaban_benar.toUpperCase());
           } else {
             alert('Soal tidak ditemukan');
             router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
@@ -91,25 +95,31 @@ export default function EditSoalPage() {
     }
 
     try {
-      // Update soal
-      const updated = AdminUjianService.updateSoal(examId, questionId, {
+      // Get existing soal data to preserve nomor_soal
+      const soalList = await adminService.getSoalByUjian(parseInt(examId));
+      const existingSoal = soalList.find(s => s.id === parseInt(questionId));
+      
+      if (!existingSoal) {
+        alert('Soal tidak ditemukan');
+        return;
+      }
+
+      // Update soal via backend API
+      await adminService.updateSoal(parseInt(questionId), {
+        ujian_id: parseInt(examId),
+        nomor_soal: existingSoal.nomor_soal,
+        tipe_soal: tipeSoal === 'Gambar' ? 'gambar' : 'text',
         pertanyaan: soal,
-        opsi: [
-          { label: 'A', teks: jawabanA },
-          { label: 'B', teks: jawabanB },
-          { label: 'C', teks: jawabanC },
-          { label: 'D', teks: jawabanD },
-          { label: 'E', teks: jawabanE },
-        ],
-        jawabanBenar: jawabanBenar,
+        opsi_a: jawabanA,
+        opsi_b: jawabanB,
+        opsi_c: jawabanC,
+        opsi_d: jawabanD,
+        opsi_e: jawabanE,
+        jawaban_benar: jawabanBenar.toUpperCase(), // Backend expects uppercase
       });
 
-      if (updated) {
-        alert('Soal berhasil diupdate');
-        router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
-      } else {
-        alert('Gagal mengupdate soal - Soal tidak ditemukan');
-      }
+      alert('Soal berhasil diupdate');
+      router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
     } catch (error) {
       console.error('Error updating soal:', error);
       alert('Gagal mengupdate soal');
