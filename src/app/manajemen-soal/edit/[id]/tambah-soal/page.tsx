@@ -13,7 +13,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
-import { AdminUjianService } from '@/lib/mockData';
+import { adminService } from '@/services/admin.service';
 import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
 
 export default function TambahSoalPage() {
@@ -21,30 +21,44 @@ export default function TambahSoalPage() {
   const params = useParams();
   const examId = params.id;
 
-  // Load exam name
+  // Load exam name from backend
   const [examName, setExamName] = useState('');
+  const [nextNomorSoal, setNextNomorSoal] = useState(1);
   
   useEffect(() => {
-    const ujian = AdminUjianService.getUjianById(examId as string);
-    if (ujian) {
-      setExamName(ujian.nama);
-    }
+    loadExamData();
   }, [examId]);
 
-  // Form state
+  const loadExamData = async () => {
+    try {
+      const ujianList = await adminService.getUjian();
+      const ujian = ujianList.find(u => u.id === parseInt(examId as string));
+      if (ujian) {
+        setExamName(ujian.nama_ujian);
+      }
+
+      // Get existing soal to determine next nomor_soal
+      const soalList = await adminService.getSoalByUjian(parseInt(examId as string));
+      setNextNomorSoal(soalList.length + 1);
+    } catch (error) {
+      console.error('Failed to load exam data:', error);
+    }
+  };
+
+  // Form state - Using URL strings for images
   const [tipeSoal, setTipeSoal] = useState('Gambar');
   const [soal, setSoal] = useState('');
-  const [soalGambar, setSoalGambar] = useState<File | null>(null);
+  const [soalGambar, setSoalGambar] = useState<string>('');
   const [jawabanA, setJawabanA] = useState('');
-  const [gambarA, setGambarA] = useState<File | null>(null);
+  const [gambarA, setGambarA] = useState<string>('');
   const [jawabanB, setJawabanB] = useState('');
-  const [gambarB, setGambarB] = useState<File | null>(null);
+  const [gambarB, setGambarB] = useState<string>('');
   const [jawabanC, setJawabanC] = useState('');
-  const [gambarC, setGambarC] = useState<File | null>(null);
+  const [gambarC, setGambarC] = useState<string>('');
   const [jawabanD, setJawabanD] = useState('');
-  const [gambarD, setGambarD] = useState<File | null>(null);
+  const [gambarD, setGambarD] = useState<string>('');
   const [jawabanE, setJawabanE] = useState('');
-  const [gambarE, setGambarE] = useState<File | null>(null);
+  const [gambarE, setGambarE] = useState<string>('');
   const [jawabanBenar, setJawabanBenar] = useState('D');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,25 +75,28 @@ export default function TambahSoalPage() {
     }
 
     try {
-      // Create new soal
-      const newSoal = AdminUjianService.addSoal(examId as string, {
+      // Create new soal via backend API with image URLs
+      await adminService.createSoal({
+        ujian_id: parseInt(examId as string),
+        nomor_soal: nextNomorSoal,
+        tipe_soal: tipeSoal === 'Gambar' ? 'gambar' : 'text',
         pertanyaan: soal,
-        opsi: [
-          { label: 'A', teks: jawabanA },
-          { label: 'B', teks: jawabanB },
-          { label: 'C', teks: jawabanC },
-          { label: 'D', teks: jawabanD },
-          { label: 'E', teks: jawabanE },
-        ],
-        jawabanBenar: jawabanBenar,
+        media_soal: soalGambar || undefined,
+        opsi_a: jawabanA,
+        opsi_a_media: gambarA || undefined,
+        opsi_b: jawabanB,
+        opsi_b_media: gambarB || undefined,
+        opsi_c: jawabanC,
+        opsi_c_media: gambarC || undefined,
+        opsi_d: jawabanD,
+        opsi_d_media: gambarD || undefined,
+        opsi_e: jawabanE,
+        opsi_e_media: gambarE || undefined,
+        jawaban_benar: jawabanBenar.toUpperCase(), // Backend expects uppercase
       });
 
-      if (newSoal) {
-        alert('Soal berhasil ditambahkan');
-        router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
-      } else {
-        alert('Gagal menambahkan soal - Ujian tidak ditemukan');
-      }
+      alert('Soal berhasil ditambahkan');
+      router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
     } catch (error) {
       console.error('Error adding soal:', error);
       alert('Gagal menambahkan soal');
@@ -191,36 +208,21 @@ export default function TambahSoalPage() {
                   </div>
                 </div>
 
-                {/* Soal Gambar (Optional) */}
+                {/* Soal Gambar (Optional) - URL Input */}
                 <div>
                   <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
-                    Soal Gambar (Opsional)
+                    URL Gambar Soal (Opsional)
                   </label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setSoalGambar(e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="soal-gambar"
-                    />
-                    <label
-                      htmlFor="soal-gambar"
-                      className="flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 transition-all hover:border-[#41366E] hover:bg-purple-50"
-                    >
-                      <div className="text-center">
-                        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-200">
-                          <ImageIcon className="h-7 w-7 text-gray-500" />
-                        </div>
-                        <p className="font-inter text-sm font-medium text-gray-700 mb-1">
-                          {soalGambar ? soalGambar.name : 'Klik untuk upload gambar'}
-                        </p>
-                        <p className="font-inter text-xs text-gray-500">
-                          PNG, JPG hingga 5MB
-                        </p>
-                      </div>
-                    </label>
-                  </div>
+                  <input
+                    type="url"
+                    value={soalGambar || ''}
+                    onChange={(e) => setSoalGambar(e.target.value)}
+                    className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
+                    placeholder="https://example.com/image.png"
+                  />
+                  <p className="mt-2 font-inter text-xs text-gray-500">
+                    💡 Masukkan URL gambar dari internet atau upload ke hosting terlebih dahulu
+                  </p>
                 </div>
 
                 {/* Answer Options A-E */}
@@ -288,33 +290,18 @@ export default function TambahSoalPage() {
                         </div>
                       </div>
 
-                      {/* Gambar (Optional) */}
+                      {/* Gambar (Optional) - URL Input */}
                       <div>
                         <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
-                          Gambar {option.label} (Opsional)
+                          URL Gambar {option.label} (Opsional)
                         </label>
-                        <div className="relative">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => option.setGambar(e.target.files?.[0] || null)}
-                            className="hidden"
-                            id={`gambar-${option.label}`}
-                          />
-                          <label
-                            htmlFor={`gambar-${option.label}`}
-                            className="flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-8 transition-all hover:border-[#41366E] hover:bg-purple-50"
-                          >
-                            <div className="text-center">
-                              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
-                                <ImageIcon className="h-5 w-5 text-gray-500" />
-                              </div>
-                              <p className="font-inter text-sm font-medium text-gray-700">
-                                {option.gambar ? option.gambar.name : 'No file chosen'}
-                              </p>
-                            </div>
-                          </label>
-                        </div>
+                        <input
+                          type="url"
+                          value={option.gambar}
+                          onChange={(e) => option.setGambar(e.target.value)}
+                          className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
+                          placeholder="https://example.com/image.png"
+                        />
                       </div>
                     </div>
                   ))}

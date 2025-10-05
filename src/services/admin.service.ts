@@ -14,6 +14,7 @@ export interface Ujian {
   waktu_mulai_pengerjaan: string;
   waktu_akhir_pengerjaan: string;
   durasi: number;
+  jumlah_soal?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -105,13 +106,14 @@ export const adminService = {
   // ========== UJIAN ENDPOINTS ==========
   
   /**
-   * Get all ujian
+   * Get all ujian with jumlah_soal calculated from soal count
    */
   getUjian: async (): Promise<Ujian[]> => {
     const response = await api.get<any>('/admin/ujian');
     // Backend returns dashboard format with ujian_dashboard array
     if (response.data && response.data.ujian_dashboard) {
-      return response.data.ujian_dashboard.map((ujian: any) => {
+      // Fetch all ujian first
+      const ujianList = response.data.ujian_dashboard.map((ujian: any) => {
         // Calculate durasi from waktu_mulai and waktu_akhir (in minutes)
         let durasi = 0;
         if (ujian.waktu_mulai_pengerjaan && ujian.waktu_akhir_pengerjaan) {
@@ -127,9 +129,26 @@ export const adminService = {
           waktu_mulai_pengerjaan: ujian.waktu_mulai_pengerjaan,
           waktu_akhir_pengerjaan: ujian.waktu_akhir_pengerjaan,
           durasi: durasi,
+          jumlah_soal: 0, // Will be updated below
           created_at: ujian.created_at
         };
       });
+
+      // Fetch jumlah_soal for each ujian
+      const ujianWithSoalCount = await Promise.all(
+        ujianList.map(async (ujian: Ujian) => {
+          try {
+            const soalResponse = await api.get<any>(`/admin/soal/${ujian.id}`);
+            const jumlahSoal = soalResponse.data?.soal?.length || 0;
+            return { ...ujian, jumlah_soal: jumlahSoal };
+          } catch (error) {
+            console.error(`Failed to fetch soal count for ujian ${ujian.id}:`, error);
+            return { ...ujian, jumlah_soal: 0 };
+          }
+        })
+      );
+
+      return ujianWithSoalCount;
     }
     return response.data;
   },
@@ -164,7 +183,8 @@ export const adminService = {
    */
   getSoalByUjian: async (ujianId: number): Promise<Soal[]> => {
     const response = await api.get<any>(`/admin/soal/${ujianId}`);
-    return response.data;
+    // Backend returns { success, data: { ujian, soal } }
+    return response.data?.soal || [];
   },
 
   /**

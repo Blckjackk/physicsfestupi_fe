@@ -476,7 +476,7 @@ function ExamTableRow({
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.deskripsi || '-'}</td>
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{formatDate(exam.waktu_mulai_pengerjaan)}</td>
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{formatDate(exam.waktu_akhir_pengerjaan)}</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">-</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.jumlah_soal ?? 0}</td>
       <td className="px-4 py-3.5 text-center">
         <div className="flex items-center justify-center gap-2">
           <Pencil 
