@@ -1,13 +1,28 @@
 "use client"
 
 import * as React from "react"
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 import Sidebar from '@/components/dashboard-admin/Sidebar';
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+
+interface DetailJawaban {
+    peserta: { id: number; username: string; };
+    ujian: { id: number; nama_ujian: string; };
+    aktivitas: { status: string; waktu_login: string; waktu_submit: string; durasi: string | null; };
+    statistik: { total_soal: number; dijawab: number; kosong: number; benar: number; salah: number; nilai: number; };
+    soal_jawaban: {
+        nomor_soal: number;
+        pertanyaan: string;
+        jawaban_benar: string;
+        jawaban_peserta: string | null;
+        is_correct: boolean | null;
+    }[];
+}
 
 const data_peserta_initial = [
     { id: '1', no: 1, username: 'asep12345', nama_ujian: 'Ujian A', mulai: '01/10/2025 10:00:00', selesai: '01/10/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
@@ -19,10 +34,59 @@ const data_peserta_initial = [
     { id: '7', no: 7, username: 'asep129', nama_ujian: 'Ujian A', mulai: '01/01/2026 10:00:00', selesai: '01/01/2026 12:00:00', jumlah_soal: 100, terjawab: 100 },
 ];
 
-export default function DetailHasilUjian({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params); // <-- 2. "Buka" promise-nya
-    const id = resolvedParams.id;      // <-- 3. Baru akses propertinya
-    const data = data_peserta_initial.find(item => item.id === id);
+export default function DetailHasilUjianPage({ params }: { params: Promise<{ peserta_id: string; ujian_id: string }> }) {
+    const resolvedParams = use(params); 
+
+    const { peserta_id, ujian_id } = resolvedParams;
+
+    const [detailData, setDetailData] = useState<DetailJawaban | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!peserta_id || !ujian_id) return;
+
+        const fetchDetail = async () => {
+            try {
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+                const response = await fetch(`${apiBaseUrl}/api/admin/jawaban/peserta/${peserta_id}/ujian/${ujian_id}`);
+
+                if (!response.ok) {
+                    throw new Error('Gagal mengambil detail jawaban dari server.');
+                }
+                const result = await response.json();
+                if (result.success) {
+                    setDetailData(result.data);
+                } else {
+                    throw new Error(result.message || 'Data tidak ditemukan.');
+                }
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchDetail();
+    }, [peserta_id, ujian_id]);
+
+    if (isLoading) {
+        return <LoadingSpinner />;
+    }
+
+    if (error) {
+        return (
+            <div className="flex min-h-screen"><Sidebar /><main className="flex-1 p-8"><p className="text-red-500">Error: {error}</p></main></div>
+        );
+    }
+
+    if (!detailData) {
+        return (
+            <div className="flex min-h-screen"><Sidebar /><main className="flex-1 p-8"><p>Data tidak ditemukan.</p></main></div>
+        );
+    }
+
+    const { peserta, ujian, aktivitas, statistik, soal_jawaban } = detailData;
 
     return (
         <div className="flex min-h-screen bg-gray-100">
@@ -47,27 +111,27 @@ export default function DetailHasilUjian({ params }: { params: Promise<{ id: str
                             </div>
 
                             {/* Baris Kedua: 3 Div (Masing-masing mengambil 2 dari 6 kolom) */}
-                            <div className="col-span-2 mx-8 p-4 mt-4">
+                            <div className="col-span-2 mx-8 p-4">
                                 <p className="text-start text-black font-medium text-base">Username</p>
-                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{data?.username}</p>
+                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{peserta.username}</p>
                             </div>
                             <div className="col-span-2 mx-8 p-4">
                                 <p className="text-start text-black font-medium text-base">Waktu Mulai</p>
-                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">dd/mm/yy --:--</p>
+                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{aktivitas.waktu_login}</p>
                             </div>
                             <div className="col-span-2 mx-8 p-4">
                                 <p className="text-start text-black font-medium text-base">Total Waktu</p>
-                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">1 Jam 30 Menit</p>
+                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{aktivitas.durasi || '-'} Menit</p>
                             </div>
 
                             {/* Baris Ketiga: 2 Div (Masing-masing mengambil 3 dari 6 kolom) */}
                             <div className="col-span-2 mx-8 p-4">
                                 <p className="text-start text-black font-medium text-base">Nama Ujian</p>
-                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{data?.nama_ujian}</p>
+                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{ujian.nama_ujian}</p>
                             </div>
                             <div className="col-span-2 mx-8 p-4 mb-4">
                                 <p className="text-start text-black font-medium text-base">Waktu Selesai</p>
-                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">dd/mm/yy --:--</p>
+                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{aktivitas.waktu_submit}</p>
                             </div>
                         </div>
                     </div>
@@ -85,11 +149,16 @@ export default function DetailHasilUjian({ params }: { params: Promise<{ id: str
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {Array.from({ length: 10 }, (_, index) => index + 1).map((nomor) => (
-                                        <TableRow key={nomor} className='border-[#E4E4E4]'>
-                                            <TableCell className="px-4">{nomor}</TableCell>
-                                            <TableCell>Seorang siswa melakukan...</TableCell>
-                                            <TableCell>A</TableCell>
+                                    {soal_jawaban.map((item) => (
+                                        <TableRow key={item.nomor_soal} className="border-[#E4E4E4]">
+                                            <TableCell className="text-start px-4">{item.nomor_soal}</TableCell>
+                                            <TableCell className="text-start px-4 truncate">
+                                                <div className="truncate">{item.pertanyaan}</div>
+                                            </TableCell>
+                                            <TableCell className={`text-start px-4 font-bold ${item.is_correct ? 'text-green-600' : 'text-red-600'}`}>
+                                                {item.jawaban_peserta || '-'}
+                                            </TableCell>
+                                            {/* <TableCell className="text-center px-4">{item.jawaban_benar}</TableCell> */}
                                         </TableRow>
                                     ))}
                                 </TableBody>

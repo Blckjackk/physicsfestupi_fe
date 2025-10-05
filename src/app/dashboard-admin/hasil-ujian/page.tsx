@@ -14,7 +14,6 @@ import Sidebar from '@/components/dashboard-admin/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from "@/components/ui/input";
-import { DropdownMenuCheckboxItemProps } from "@radix-ui/react-dropdown-menu"
 
 import {
     Table,
@@ -47,9 +46,26 @@ const data_peserta_initial = [
     { id: '7', no: 7, username: 'asep129', nama_ujian: 'Ujian A', mulai: '01/01/2026 10:00:00', selesai: '01/01/2026 12:00:00', jumlah_soal: 100, terjawab: 100 },
 ];
 
+interface HasilUjian {
+    no: number;
+    username: string;
+    nama_ujian: string;
+    mulai: string;
+    selesai: string;
+    jumlah_soal: number;
+    terjawab: number;
+    progress: string;
+    status: string;
+    peserta_id: number;
+    ujian_id: number;
+    aktivitas_id: number;
+}
 
 export default function HasilUjian() {
-    const [peserta, setPeserta] = React.useState(data_peserta_initial);
+    // const [peserta, setPeserta] = React.useState(data_peserta_initial);
+    const [hasilUjian, setHasilUjian] = useState<HasilUjian[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -59,23 +75,77 @@ export default function HasilUjian() {
     // Ref buat checkbox di header (untuk state indeterminate)
     const headerCheckboxRef = useRef<HTMLButtonElement>(null);
 
+    // State buat nyimpen teks dari input search
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const fetchHasilUjian = async () => {
+            try {
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+                const response = await fetch(`${apiBaseUrl}/api/admin/jawaban/peserta`);
+
+                if (!response.ok) {
+                    throw new Error('Gagal mengambil data hasil ujian');
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    setHasilUjian(result.data);
+                } else {
+                    throw new Error(result.message || 'Gagal memuat data');
+                }
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchHasilUjian();
+    }, []);
+
+    const sortedAndFilteredData = React.useMemo(() => {
+        let dataToProcess = hasilUjian.filter(item =>
+            item.username.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+        if (position === "Urut Berdasarkan") {
+            return dataToProcess;
+        }
+
+        return [...dataToProcess].sort((a, b) => {
+            const parseDate = (dateString: string) => {
+                if (dateString === '-') return new Date(0); // Handle non-date strings
+                const [datePart, timePart] = dateString.split(' ');
+                const [day, month, year] = datePart.split('/');
+                return new Date(`${year}-${month}-${day}T${timePart}`);
+            };
+            const dateA = parseDate(a.selesai);
+            const dateB = parseDate(b.selesai);
+            return position === "Terlama" ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
+        });
+    }, [searchQuery, position, hasilUjian]);
+
     // Ngitung jumlah baris yg kepilih dan total baris dari data asli
     const numSelected = selectedRows.length;
-    const rowCount = peserta.length;
+    const rowCount = sortedAndFilteredData.length;
 
     // Efek buat ngatur state indeterminate pada checkbox header
     useEffect(() => {
         if (headerCheckboxRef.current) {
-            headerCheckboxRef.current.dataset.state =
-                numSelected > 0 && numSelected < rowCount ? 'indeterminate' :
-                    numSelected === rowCount ? 'checked' : 'unchecked';
+            const state = numSelected > 0 && numSelected < rowCount
+                ? 'indeterminate'
+                : (rowCount > 0 && numSelected === rowCount)
+                    ? 'checked'
+                    : 'unchecked';
+
+            headerCheckboxRef.current.dataset.state = state;
         }
     }, [selectedRows, rowCount, numSelected]);
 
     // Fungsi buat kasus klik "select all" di header table
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            const allRowIds = peserta.map((row) => row.id);
+            const allRowIds = sortedAndFilteredData.map((row) => row.aktivitas_id.toString());
             setSelectedRows(allRowIds);
         } else {
             setSelectedRows([]);
@@ -94,7 +164,7 @@ export default function HasilUjian() {
     const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
     const handleHapusPeserta = (pesertaId: string) => {
         // Hapus data dari state peserta
-        setPeserta(prevPeserta => prevPeserta.filter(p => p.id !== pesertaId));
+        setHasilUjian(prevHasilUjian => prevHasilUjian.filter(p => p.aktivitas_id.toString() !== pesertaId));
 
         // Buka dialog sukses
         setIsSuccessOpen(true);
@@ -104,9 +174,7 @@ export default function HasilUjian() {
     const [isSuccessHapusPilihOpen, setIsSuccessHapusPilihOpen] = React.useState(false);
     const handleHapusPilih = () => {
         // Filter state 'peserta'
-        setPeserta(prevPeserta =>
-            prevPeserta.filter(p => !selectedRows.includes(p.id))
-        );
+        setHasilUjian(prevHasilUjian => prevHasilUjian.filter(p => !selectedRows.includes(p.aktivitas_id.toString())));
 
         // Kosongkan kembali daftar baris yang terpilih
         setSelectedRows([]);
@@ -114,39 +182,6 @@ export default function HasilUjian() {
         // Buka dialog sukses
         setIsSuccessHapusPilihOpen(true);
     };
-
-    // State buat nyimpen teks dari input search
-    const [searchQuery, setSearchQuery] = useState('');
-
-    const sortedAndFilteredData = React.useMemo(() => {
-        let dataToProcess = peserta.filter(item =>
-            item.username.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-
-        if (position === "Urut Berdasarkan") {
-            return dataToProcess; // Langsung kembalikan data yang sudah difilter tanpa di-sort
-        }
-
-        // Jika ada pilihan sorting, baru jalankan logika .sort()
-        const sorted = [...dataToProcess].sort((a, b) => {
-            const parseDate = (dateString: string) => {
-                const [datePart, timePart] = dateString.split(' ');
-                const [day, month, year] = datePart.split('/');
-                const time = timePart.replace(/\./g, ':');
-                return new Date(`${year}-${month}-${day}T${time}`);
-            };
-
-            const dateA = parseDate(a.selesai);
-            const dateB = parseDate(b.selesai);
-
-            if (position === "Terlama") {
-                return dateA.getTime() - dateB.getTime();
-            }
-            return dateB.getTime() - dateA.getTime(); // Default 'Terbaru'
-        });
-
-        return sorted;
-    }, [searchQuery, position, peserta]);
 
     const handleExportExcel = () => {
         // 1. Siapkan nama kolom untuk header di Excel
@@ -311,29 +346,31 @@ export default function HasilUjian() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {sortedAndFilteredData.map((row) => (
-                                        <TableRow key={row.id} className='border-[#E4E4E4]'>
-                                            <TableCell className='text-center'>
-                                                <Checkbox
-                                                    onCheckedChange={(checked) => handleSelectRow(row.id, checked as boolean)}
-                                                    checked={selectedRows.includes(row.id)}
-                                                />
-                                            </TableCell>
-                                            <TableCell>{row.no}</TableCell>
-                                            <TableCell>{row.username}</TableCell>
-                                            <TableCell>{row.nama_ujian}</TableCell>
-                                            <TableCell>{row.mulai}</TableCell>
-                                            <TableCell>{row.selesai}</TableCell>
-                                            <TableCell>{row.jumlah_soal}</TableCell>
-                                            <TableCell>{row.terjawab}</TableCell>
-                                            <TableCell className='text-center'>
-                                                <Link href={`/dashboard-admin/hasil-ujian/detail/${row.id}`}>
-                                                    <FileCheck size={18} className="inline mr-2 cursor-pointer" />
-                                                </Link>
-                                                <HapusPeserta pesertaId={row.id} onHapus={handleHapusPeserta} />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {isLoading ? (
+                                        <TableRow><TableCell colSpan={9} className="h-24 text-center">Memuat data hasil ujian...</TableCell></TableRow>
+                                    ) : error ? (
+                                        <TableRow><TableCell colSpan={9} className="h-24 text-center text-red-500">Error: {error}</TableCell></TableRow>
+                                    ) : (
+                                        sortedAndFilteredData.map((row) => (
+                                            <TableRow key={row.aktivitas_id} className='border-[#E4E4E4]'>
+                                                <TableCell><Checkbox /></TableCell>
+                                                <TableCell>{row.no}</TableCell>
+                                                <TableCell>{row.username}</TableCell>
+                                                <TableCell>{row.nama_ujian}</TableCell>
+                                                <TableCell>{row.mulai}</TableCell>
+                                                <TableCell>{row.selesai}</TableCell>
+                                                <TableCell>{row.jumlah_soal}</TableCell>
+                                                <TableCell>{row.terjawab}</TableCell>
+                                                <TableCell className='text-center'>
+                                                    <Link href={`/dashboard-admin/hasil-ujian/detail/${row.peserta_id}/${row.ujian_id}`}>
+                                                        <FileCheck size={18} className="inline mr-2 cursor-pointer" />
+                                                    </Link>
+                                                    {/* Hapus di sini menggunakan aktivitas_id */}
+
+                                                    <HapusPeserta pesertaId={row.aktivitas_id.toString()} onHapus={handleHapusPeserta} /></TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
