@@ -176,11 +176,18 @@ export default function DashboardPage() {
                 if (response.status === 422) {
                     // Ambil pesan error pertama
                     const errors = result.errors;
-                    const firstError = Object.values(errors)[0][0];
+                    // Beri tahu TypeScript bahwa 'errors' adalah objek dengan key string dan value array of string
+                    const errorMessages = Object.values(errors as Record<string, string[]>);
+
+                    // Gunakan optional chaining (?.) untuk keamanan jika tidak ada error
+                    const firstError = errorMessages[0]?.[0];
+
                     throw new Error(firstError || 'Data yang dimasukkan tidak valid.');
                 }
                 throw new Error(result.message || 'Gagal menambahkan peserta.');
             }
+
+            // console.log('Success Response Body:', result);
 
             // Jika berhasil, tambahkan data baru dari server ke state 'peserta'
             // Ini lebih baik daripada menambah data mentah dari form
@@ -188,20 +195,22 @@ export default function DashboardPage() {
             const assignedUjian = result.data.ujian_assigned;
 
             // Kita perlu membuat format data baru agar sesuai dengan state 'peserta'
-            const formattedNewPeserta = {
+            const formattedNewPeserta: Peserta = {
                 id: newPesertaFromServer.id.toString(),
-                no: peserta.length + 1,
+                no: peserta.length + 1, // Ini mungkin perlu disesuaikan jika ada paginasi
                 username: newPesertaFromServer.username,
-                password: '***', // Sebaiknya tidak menampilkan password asli
-                ujian: formData.ujian, // Ambil dari form karena API tidak mengembalikan ini
-                status: 'Belum Mulai', // Status awal
+                password: '***',
+                ujian: assignedUjian.nama_ujian,
+                status: 'Belum Login', // Sesuai dengan status awal dari API
             };
 
-            setPeserta(prevPeserta => [...prevPeserta, formattedNewPeserta]);
+            setPeserta(prevPeserta => [formattedNewPeserta, ...prevPeserta]);
+            return true;
 
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Gagal menambahkan peserta. Silakan coba lagi.');
+        } catch (error: any) {
+            // console.error('Error:', error);
+            // alert(`Gagal: ${error.message}`);
+            return false;
         }
     };
 
@@ -291,19 +300,19 @@ export default function DashboardPage() {
                                             checked={showPanel}
                                             onCheckedChange={setShowPanel}
                                         >
-                                            Belum Ujian
+                                            Belum Login
                                         </DropdownMenuCheckboxItem>
                                         <DropdownMenuCheckboxItem
                                             checked={showStatusBar}
                                             onCheckedChange={setShowStatusBar}
                                         >
-                                            Sedang Ujian
+                                            Sedang Mengerjakan
                                         </DropdownMenuCheckboxItem>
                                         <DropdownMenuCheckboxItem
                                             checked={showActivityBar}
                                             onCheckedChange={setShowActivityBar}
                                         >
-                                            Selesai
+                                            Sudah Submit
                                         </DropdownMenuCheckboxItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>

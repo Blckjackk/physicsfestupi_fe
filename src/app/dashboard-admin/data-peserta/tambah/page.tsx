@@ -28,18 +28,19 @@ import {
 } from "@/components/ui/dialog"
 
 interface UjianOption {
-  id: number;
+  ujian_id: number;
   nama_ujian: string;
 }
 
 interface TambahPesertaProps {
-  onTambah: (data: { username: string; password: string; ujian_id: number }) => Promise<void>;
+  onTambah: (data: { username: string; password: string; ujian_id: number; }) => Promise<boolean>;
 }
 
 export function TambahPeserta({ onTambah }: TambahPesertaProps) {
   // 1. State untuk mengontrol kedua dialog
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
+  const [isFailOpen, setIsFailOpen] = React.useState(false);
 
   // State untuk data dari form
   const [username, setUsername] = React.useState("");
@@ -48,10 +49,12 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
 
   // State untuk menampung daftar ujian dari API
   const [ujianOptions, setUjianOptions] = React.useState<UjianOption[]>([]);
+  const [isLoadingUjian, setIsLoadingUjian] = React.useState(false);
 
   // Ambil daftar ujian saat dialog pertama kali akan dibuka
   React.useEffect(() => {
     if (isFormOpen) {
+      setIsLoadingUjian(true);
       const fetchUjianOptions = async () => {
         try {
           const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -62,6 +65,8 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
           }
         } catch (error) {
           console.error("Gagal mengambil daftar ujian:", error);
+        } finally {
+          setIsLoadingUjian(false);
         }
       };
       fetchUjianOptions();
@@ -72,7 +77,13 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
     event.preventDefault();
 
     if (!username.trim() || password.length < 6 || !selectedUjianId) {
-      alert("Harap lengkapi semua data.");
+      if (!username.trim()) {
+        alert("Username tidak boleh kosong.");
+      } else if (password.length < 6) {
+        alert("Password harus terdiri dari minimal 6 karakter.");
+      } else if (!selectedUjianId) {
+        alert("Harap pilih tipe ujian.");
+      }
       return;
     }
 
@@ -82,15 +93,22 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
       ujian_id: selectedUjianId
     };
 
-    await onTambah(formData); // Tunggu proses onTambah selesai
-
-    setIsFormOpen(false);
-    setIsSuccessOpen(true);
-
-    // Reset form
-    setUsername("");
-    setPassword("");
-    setSelectedUjianId(null);
+    const success = await onTambah(formData);
+    // Cek hasilnya
+    if (success) {
+      // Jika berhasil, tampilkan dialog sukses
+      setIsFormOpen(false);
+      setIsSuccessOpen(true);
+      // Reset form
+      setUsername("");
+      setPassword("");
+      setSelectedUjianId(null);
+    } else {
+      // Jika gagal, tampilkan dialog gagal
+      // Biarkan form tetap terbuka agar pengguna bisa memperbaiki
+      setIsFormOpen(false); // Tutup form tambah
+      setIsFailOpen(true); // Buka dialog gagal
+    }
   };
 
   return (
@@ -128,10 +146,13 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
                 <Label className="text-black" htmlFor="ujian-1">Ujian</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="w-full justify-start" variant="outline">
-                      {selectedUjianId
-                        ? ujianOptions.find(u => u.id === selectedUjianId)?.nama_ujian
-                        : "Pilih Tipe Ujian"}
+                    <Button className="w-full justify-start" variant="outline" disabled={isLoadingUjian}>
+                      {isLoadingUjian
+                        ? "Memuat ujian..."
+                        : selectedUjianId
+                          // 2. Perbaiki find agar menggunakan ujian_id
+                          ? ujianOptions.find(u => u.ujian_id === selectedUjianId)?.nama_ujian
+                          : "Pilih Tipe Ujian"}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 text-black bg-white">
@@ -139,7 +160,7 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
                     <DropdownMenuSeparator />
                     <DropdownMenuRadioGroup value={selectedUjianId?.toString()} onValueChange={(value) => setSelectedUjianId(Number(value))}>
                       {ujianOptions.map((ujian) => (
-                        <DropdownMenuRadioItem key={ujian.id} value={ujian.id.toString()}>
+                        <DropdownMenuRadioItem key={ujian.ujian_id} value={ujian.ujian_id.toString()}>
                           {ujian.nama_ujian}
                         </DropdownMenuRadioItem>
                       ))}
@@ -182,6 +203,33 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
           <DialogFooter className="grid grid-cols-1 gap-4">
             <DialogClose asChild>
               <Button className="w-full text-white bg-[#749221]" variant="outline">
+                Tutup
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog >
+
+      <Dialog open={isFailOpen} onOpenChange={setIsFailOpen}>
+        <DialogContent className="font-heading bg-white sm:max-w-[425px]">
+          <DialogHeader className="flex items-center justify-center">
+            <DialogTitle className="text-black text-xl font-semibold text-center">
+              <Image
+                src="/images/gagal.png"
+                alt="Logo Gagal"
+                width={80}
+                height={80}
+                priority
+              />
+              <div className="mt-2">Error!</div>
+            </DialogTitle>
+            <DialogDescription className="text-base text-black font-medium">
+              Gagal Tambah Peserta
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="grid grid-cols-1 gap-4">
+            <DialogClose asChild>
+              <Button className="w-full text-white bg-[#CD1F1F]" variant="outline">
                 Tutup
               </Button>
             </DialogClose>
