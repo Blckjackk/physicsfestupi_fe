@@ -247,7 +247,7 @@ export default function DashboardPage() {
                 throw new Error(result.message || 'Gagal mengupdate peserta.');
             }
 
-            // ✅ Ambil nama ujian dari response server
+            // Ambil nama ujian dari response server
             const updatedUjianNama = result.data?.ujian_assigned?.nama_ujian || 'Tidak diketahui';
 
 
