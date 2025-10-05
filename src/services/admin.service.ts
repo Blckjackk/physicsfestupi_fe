@@ -62,17 +62,17 @@ export interface CreateSoalRequest {
   tipe_soal?: 'text' | 'gambar';
   deskripsi_soal?: string;
   pertanyaan: string;
-  media_soal?: string;
+  media_soal?: File | string;  // Support File upload or URL string
   opsi_a: string;
-  opsi_a_media?: string;
+  opsi_a_media?: File | string;
   opsi_b: string;
-  opsi_b_media?: string;
+  opsi_b_media?: File | string;
   opsi_c: string;
-  opsi_c_media?: string;
+  opsi_c_media?: File | string;
   opsi_d: string;
-  opsi_d_media?: string;
+  opsi_d_media?: File | string;
   opsi_e: string;
-  opsi_e_media?: string;
+  opsi_e_media?: File | string;
   jawaban_benar: string; // Send as uppercase: "A", "B", "C", "D", "E"
 }
 
@@ -188,11 +188,93 @@ export const adminService = {
   },
 
   /**
-   * Create new soal
+   * Create new soal with file upload support
    */
   createSoal: async (data: CreateSoalRequest): Promise<Soal> => {
-    const response = await api.post<any>('/admin/soal', data);
-    return response.data;
+    // Check if any field contains File object
+    const hasFile = Object.values(data).some(value => value instanceof File);
+
+    if (hasFile) {
+      // Use FormData for file upload
+      const formData = new FormData();
+      
+      // Append basic fields
+      formData.append('ujian_id', data.ujian_id.toString());
+      formData.append('nomor_soal', data.nomor_soal.toString());
+      formData.append('pertanyaan', data.pertanyaan);
+      
+      if (data.tipe_soal) formData.append('tipe_soal', data.tipe_soal);
+      if (data.deskripsi_soal) formData.append('deskripsi_soal', data.deskripsi_soal);
+      
+      // Append media_soal (File or string)
+      if (data.media_soal) {
+        if (data.media_soal instanceof File) {
+          formData.append('media_soal', data.media_soal);
+        } else {
+          formData.append('media_soal', data.media_soal);
+        }
+      }
+      
+      // Append opsi A-E with media
+      formData.append('opsi_a', data.opsi_a);
+      if (data.opsi_a_media) {
+        if (data.opsi_a_media instanceof File) {
+          formData.append('opsi_a_media', data.opsi_a_media);
+        } else {
+          formData.append('opsi_a_media', data.opsi_a_media);
+        }
+      }
+      
+      formData.append('opsi_b', data.opsi_b);
+      if (data.opsi_b_media) {
+        if (data.opsi_b_media instanceof File) {
+          formData.append('opsi_b_media', data.opsi_b_media);
+        } else {
+          formData.append('opsi_b_media', data.opsi_b_media);
+        }
+      }
+      
+      formData.append('opsi_c', data.opsi_c);
+      if (data.opsi_c_media) {
+        if (data.opsi_c_media instanceof File) {
+          formData.append('opsi_c_media', data.opsi_c_media);
+        } else {
+          formData.append('opsi_c_media', data.opsi_c_media);
+        }
+      }
+      
+      formData.append('opsi_d', data.opsi_d);
+      if (data.opsi_d_media) {
+        if (data.opsi_d_media instanceof File) {
+          formData.append('opsi_d_media', data.opsi_d_media);
+        } else {
+          formData.append('opsi_d_media', data.opsi_d_media);
+        }
+      }
+      
+      formData.append('opsi_e', data.opsi_e);
+      if (data.opsi_e_media) {
+        if (data.opsi_e_media instanceof File) {
+          formData.append('opsi_e_media', data.opsi_e_media);
+        } else {
+          formData.append('opsi_e_media', data.opsi_e_media);
+        }
+      }
+      
+      formData.append('jawaban_benar', data.jawaban_benar);
+
+      // Send as multipart/form-data
+      const response = await api.post<any>('/admin/soal', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data.data;
+    } else {
+      // Send as regular JSON if no files
+      const response = await api.post<any>('/admin/soal', data);
+      return response.data;
+    }
   },
 
   /**

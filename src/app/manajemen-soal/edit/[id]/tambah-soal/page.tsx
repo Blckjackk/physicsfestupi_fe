@@ -45,20 +45,26 @@ export default function TambahSoalPage() {
     }
   };
 
-  // Form state - Using URL strings for images
+  // Form state - Support File upload
   const [tipeSoal, setTipeSoal] = useState('Gambar');
   const [soal, setSoal] = useState('');
-  const [soalGambar, setSoalGambar] = useState<string>('');
+  const [soalGambar, setSoalGambar] = useState<File | null>(null);
+  const [soalGambarPreview, setSoalGambarPreview] = useState<string>('');
   const [jawabanA, setJawabanA] = useState('');
-  const [gambarA, setGambarA] = useState<string>('');
+  const [gambarA, setGambarA] = useState<File | null>(null);
+  const [gambarAPreview, setGambarAPreview] = useState<string>('');
   const [jawabanB, setJawabanB] = useState('');
-  const [gambarB, setGambarB] = useState<string>('');
+  const [gambarB, setGambarB] = useState<File | null>(null);
+  const [gambarBPreview, setGambarBPreview] = useState<string>('');
   const [jawabanC, setJawabanC] = useState('');
-  const [gambarC, setGambarC] = useState<string>('');
+  const [gambarC, setGambarC] = useState<File | null>(null);
+  const [gambarCPreview, setGambarCPreview] = useState<string>('');
   const [jawabanD, setJawabanD] = useState('');
-  const [gambarD, setGambarD] = useState<string>('');
+  const [gambarD, setGambarD] = useState<File | null>(null);
+  const [gambarDPreview, setGambarDPreview] = useState<string>('');
   const [jawabanE, setJawabanE] = useState('');
-  const [gambarE, setGambarE] = useState<string>('');
+  const [gambarE, setGambarE] = useState<File | null>(null);
+  const [gambarEPreview, setGambarEPreview] = useState<string>('');
   const [jawabanBenar, setJawabanBenar] = useState('D');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,15 +81,15 @@ export default function TambahSoalPage() {
     }
 
     try {
-      // Create new soal via backend API with image URLs
+      // Create new soal via backend API with file upload support
       await adminService.createSoal({
         ujian_id: parseInt(examId as string),
         nomor_soal: nextNomorSoal,
         tipe_soal: tipeSoal === 'Gambar' ? 'gambar' : 'text',
         pertanyaan: soal,
-        media_soal: soalGambar || undefined,
+        media_soal: soalGambar || undefined,  // Send File object
         opsi_a: jawabanA,
-        opsi_a_media: gambarA || undefined,
+        opsi_a_media: gambarA || undefined,   // Send File object
         opsi_b: jawabanB,
         opsi_b_media: gambarB || undefined,
         opsi_c: jawabanC,
@@ -208,31 +214,74 @@ export default function TambahSoalPage() {
                   </div>
                 </div>
 
-                {/* Soal Gambar (Optional) - URL Input */}
+                {/* Soal Gambar (Optional) - File Upload with Preview */}
                 <div>
                   <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
-                    URL Gambar Soal (Opsional)
+                    Gambar Soal (Opsional)
                   </label>
-                  <input
-                    type="url"
-                    value={soalGambar || ''}
-                    onChange={(e) => setSoalGambar(e.target.value)}
-                    className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
-                    placeholder="https://example.com/image.png"
-                  />
-                  <p className="mt-2 font-inter text-xs text-gray-500">
-                    💡 Masukkan URL gambar dari internet atau upload ke hosting terlebih dahulu
-                  </p>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSoalGambar(file);
+                          // Create preview
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setSoalGambarPreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="soal-gambar"
+                    />
+                    <label
+                      htmlFor="soal-gambar"
+                      className="flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 transition-all hover:border-[#41366E] hover:bg-purple-50"
+                    >
+                      {soalGambarPreview ? (
+                        <div className="relative">
+                          <img src={soalGambarPreview} alt="Preview" className="max-h-48 rounded-lg" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setSoalGambar(null);
+                              setSoalGambarPreview('');
+                            }}
+                            className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-200">
+                            <ImageIcon className="h-7 w-7 text-gray-500" />
+                          </div>
+                          <p className="font-inter text-sm font-medium text-gray-700 mb-1">
+                            {soalGambar ? soalGambar.name : 'Klik untuk upload gambar'}
+                          </p>
+                          <p className="font-inter text-xs text-gray-500">
+                            PNG, JPG hingga 5MB
+                          </p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
                 </div>
 
                 {/* Answer Options A-E */}
                 <div className="space-y-8">
                   {[
-                    { label: 'A', value: jawabanA, setValue: setJawabanA, gambar: gambarA, setGambar: setGambarA },
-                    { label: 'B', value: jawabanB, setValue: setJawabanB, gambar: gambarB, setGambar: setGambarB },
-                    { label: 'C', value: jawabanC, setValue: setJawabanC, gambar: gambarC, setGambar: setGambarC },
-                    { label: 'D', value: jawabanD, setValue: setJawabanD, gambar: gambarD, setGambar: setGambarD },
-                    { label: 'E', value: jawabanE, setValue: setJawabanE, gambar: gambarE, setGambar: setGambarE },
+                    { label: 'A', value: jawabanA, setValue: setJawabanA, gambar: gambarA, setGambar: setGambarA, preview: gambarAPreview, setPreview: setGambarAPreview },
+                    { label: 'B', value: jawabanB, setValue: setJawabanB, gambar: gambarB, setGambar: setGambarB, preview: gambarBPreview, setPreview: setGambarBPreview },
+                    { label: 'C', value: jawabanC, setValue: setJawabanC, gambar: gambarC, setGambar: setGambarC, preview: gambarCPreview, setPreview: setGambarCPreview },
+                    { label: 'D', value: jawabanD, setValue: setJawabanD, gambar: gambarD, setGambar: setGambarD, preview: gambarDPreview, setPreview: setGambarDPreview },
+                    { label: 'E', value: jawabanE, setValue: setJawabanE, gambar: gambarE, setGambar: setGambarE, preview: gambarEPreview, setPreview: setGambarEPreview },
                   ].map((option) => (
                     <div key={option.label} className="rounded-xl border-2 border-gray-200 bg-gray-50 p-6">
                       {/* Jawaban Text */}
@@ -290,18 +339,61 @@ export default function TambahSoalPage() {
                         </div>
                       </div>
 
-                      {/* Gambar (Optional) - URL Input */}
+                      {/* Gambar (Optional) - File Upload with Preview */}
                       <div>
                         <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
-                          URL Gambar {option.label} (Opsional)
+                          Gambar {option.label} (Opsional)
                         </label>
-                        <input
-                          type="url"
-                          value={option.gambar}
-                          onChange={(e) => option.setGambar(e.target.value)}
-                          className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#41366E] focus:outline-none focus:ring-2 focus:ring-[#41366E]/20"
-                          placeholder="https://example.com/image.png"
-                        />
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                option.setGambar(file);
+                                // Create preview
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  option.setPreview(reader.result as string);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="hidden"
+                            id={`gambar-${option.label}`}
+                          />
+                          <label
+                            htmlFor={`gambar-${option.label}`}
+                            className="flex w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white px-4 py-8 transition-all hover:border-[#41366E] hover:bg-purple-50"
+                          >
+                            {option.preview ? (
+                              <div className="relative">
+                                <img src={option.preview} alt={`Preview ${option.label}`} className="max-h-32 rounded-lg" />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    option.setGambar(null);
+                                    option.setPreview('');
+                                  }}
+                                  className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="text-center">
+                                <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
+                                  <ImageIcon className="h-5 w-5 text-gray-500" />
+                                </div>
+                                <p className="font-inter text-sm font-medium text-gray-700">
+                                  {option.gambar ? option.gambar.name : 'Upload gambar'}
+                                </p>
+                              </div>
+                            )}
+                          </label>
+                        </div>
                       </div>
                     </div>
                   ))}
