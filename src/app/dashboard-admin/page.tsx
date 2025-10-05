@@ -34,36 +34,60 @@ interface Ujian {
     created_at: string;
 }
 
+interface StatistikData {
+    peserta_ujian: number;
+    belum_login: number;
+    belum_mulai: number;
+    sedang_mengerjakan: number;
+    sudah_submit: number;
+}
+
 export default function DashboardPage() {
+    const [statistik, setStatistik] = React.useState<StatistikData | null>(null);
     const [ujianData, setUjianData] = React.useState<Ujian[]>([]); // Beri tahu TypeScript ini adalah array of Ujian
     const [isLoading, setIsLoading] = React.useState(true); // Mulai dengan loading
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        const fetchUjianData = async () => {
+        const fetchData = async () => {
             try {
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-                const response = await fetch(`${apiBaseUrl}/api/admin/ujian`); // Ganti dengan endpoint Anda jika berbeda
 
-                if (!response.ok) {
+                // Siapkan kedua request
+                const ujianPromise = fetch(`${apiBaseUrl}/api/admin/ujian`);
+                const dashboardPromise = fetch(`${apiBaseUrl}/api/admin/dashboard`);
+
+                // Jalankan keduanya secara bersamaan
+                const [ujianResponse, dashboardResponse] = await Promise.all([ujianPromise, dashboardPromise]);
+
+                if (!ujianResponse.ok || !dashboardResponse.ok) {
                     throw new Error('Gagal mengambil data dari server');
                 }
 
-                const result = await response.json();
-                console.log('API Response Data:', result.data);
-                if (result.success) {
-                    setUjianData(result.data.ujian_dashboard || []);
+                const ujianResult = await ujianResponse.json();
+                const dashboardResult = await dashboardResponse.json();
+
+                // Simpan data ujian
+                if (ujianResult.success) {
+                    setUjianData(ujianResult.data.ujian_dashboard || []);
                 } else {
-                    throw new Error(result.message || 'Gagal memuat data');
+                    throw new Error(ujianResult.message || 'Gagal memuat data ujian');
+                }
+
+                // Simpan data statistik
+                if (dashboardResult.success) {
+                    setStatistik(dashboardResult.data);
+                } else {
+                    throw new Error(dashboardResult.message || 'Gagal memuat data statistik');
                 }
 
             } catch (err: any) {
                 setError(err.message);
             } finally {
-                setIsLoading(false); // Hentikan loading
+                setIsLoading(false);
             }
         };
-        fetchUjianData();
+        fetchData();
     }, []); // Array dependensi kosong agar useEffect hanya berjalan sekali
 
     // Pengecekan loading sebelum generate tampilan
@@ -98,7 +122,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Komponen Statistik Peserta biar tinggal panggil euy */}
-                <StatistikPeserta />
+                <StatistikPeserta data={statistik} />
 
                 <hr className="my-8 border-black" />
 

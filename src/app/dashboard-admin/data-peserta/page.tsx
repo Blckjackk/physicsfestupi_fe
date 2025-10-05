@@ -63,37 +63,61 @@ export type PesertaUpdatePayload = {
     ujian_id: number;
 };
 
+interface StatistikData {
+    peserta_ujian: number;
+    belum_login: number;
+    belum_mulai: number;
+    sedang_mengerjakan: number;
+    sudah_submit: number;
+}
+
 export default function DashboardPage() {
+    const [statistik, setStatistik] = React.useState<StatistikData | null>(null);
     const [peserta, setPeserta] = React.useState<Peserta[]>([]);
     const [isLoading, setIsLoading] = React.useState(true); // State untuk loading
     const [error, setError] = React.useState<string | null>(null); // State untuk error
 
     React.useEffect(() => {
-        const fetchPeserta = async () => {
+        const fetchData = async () => {
             try {
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-                const response = await fetch(`${apiBaseUrl}/api/admin/peserta`);
 
-                if (!response.ok) {
-                    throw new Error('Gagal mengambil data peserta dari server');
+                // Siapkan kedua request
+                const pesertaPromise = fetch(`${apiBaseUrl}/api/admin/peserta`);
+                const dashboardPromise = fetch(`${apiBaseUrl}/api/admin/dashboard`);
+
+                // Jalankan keduanya secara bersamaan untuk efisiensi
+                const [pesertaResponse, dashboardResponse] = await Promise.all([pesertaPromise, dashboardPromise]);
+
+                if (!pesertaResponse.ok || !dashboardResponse.ok) {
+                    throw new Error('Gagal mengambil data dari server');
                 }
 
-                const result = await response.json();
-                console.log('Response from API:', result); // Debugging log
+                const pesertaResult = await pesertaResponse.json();
+                const dashboardResult = await dashboardResponse.json();
 
-                if (result.success) {
-                    setPeserta(result.data); // Simpan data dari API ke state
+                // Simpan data peserta
+                if (pesertaResult.success) {
+                    setPeserta(pesertaResult.data);
                 } else {
-                    throw new Error(result.message || 'Gagal memuat data peserta');
+                    throw new Error(pesertaResult.message || 'Gagal memuat data peserta');
                 }
+
+                // Simpan data statistik
+                if (dashboardResult.success) {
+                    setStatistik(dashboardResult.data);
+                } else {
+                    throw new Error(dashboardResult.message || 'Gagal memuat data statistik');
+                }
+
             } catch (err: any) {
                 setError(err.message);
             } finally {
-                setIsLoading(false); // Hentikan loading, baik berhasil maupun gagal
+                setIsLoading(false);
             }
         };
 
-        fetchPeserta();
+        fetchData();
     }, []); // Array kosong berarti efek ini hanya berjalan sekali
 
     // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
@@ -333,7 +357,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Komponen Statistik Peserta biar tinggal panggil euy */}
-                <StatistikPeserta />
+                <StatistikPeserta data={statistik}/>
 
                 <div className='flex justify-end'>
                     <TambahPeserta onTambah={handleTambahPeserta} />
