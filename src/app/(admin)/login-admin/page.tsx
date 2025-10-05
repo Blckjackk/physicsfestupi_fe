@@ -6,7 +6,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AlertModal, { AlertType } from "@/components/ui/alert-modal";
-import { AuthService, initializeLocalStorage } from "@/lib/mockData";
+import { authService } from "@/services/auth.service";
+import { ApiError } from "@/lib/api";
 
 type FieldErrors = {
   username?: string;
@@ -40,14 +41,11 @@ export default function LoginAdminPage() {
     message: "",
   });
 
-  // Initialize localStorage on mount
+  // Check if already authenticated
   useEffect(() => {
-    initializeLocalStorage();
-    
-    // Redirect jika sudah login
-    if (AuthService.isAuthenticated()) {
-      const user = AuthService.getCurrentUser();
-      if (user?.role === 'admin') {
+    if (authService.isAuthenticated()) {
+      const user = authService.getAuthUser();
+      if (user?.role === 'admin' || user?.role === 'superadmin') {
         router.push('/dashboard-admin');
       }
     }
@@ -73,43 +71,16 @@ export default function LoginAdminPage() {
     setIsSubmitting(true);
 
     try {
-      // Simulasi API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Login via Laravel API
+      const data = await authService.loginAdmin({ username, password });
 
-      // Coba login menggunakan mock data
-      const user = AuthService.login(username, password);
-
-      if (!user) {
-        // 1. Alert Error: Username atau Password Salah
-        setAlert({
-          isOpen: true,
-          type: "error",
-          title: "Error!",
-          message: "Username atau Password Salah!",
-          primaryButtonText: "Tutup",
-        });
-        return;
-      }
-
-      // Cek role user
-      if (user.role !== 'admin') {
-        setAlert({
-          isOpen: true,
-          type: "error",
-          title: "Error!",
-          message: "Halaman ini hanya untuk admin. Silakan gunakan halaman login peserta.",
-          primaryButtonText: "Tutup",
-        });
-        AuthService.logout();
-        return;
-      }
-
-      // 2. Alert Success: Login Berhasil
+      // Laravel returns { admin, token }
+      // Show success alert
       setAlert({
         isOpen: true,
         type: "success",
         title: "Berhasil",
-        message: `Selamat datang ${user.nama || user.username}! Anda akan diarahkan ke dashboard admin.`,
+        message: `Selamat datang ${data.admin.username}! Anda akan diarahkan ke dashboard admin.`,
         primaryButtonText: "Lanjut",
         secondaryButtonText: "Kembali",
         onPrimaryClick: () => {
@@ -120,14 +91,36 @@ export default function LoginAdminPage() {
 
     } catch (error) {
       console.error('Login error:', error);
-      setAlert({
-        isOpen: true,
-        type: "error",
-        title: "Error!",
-        message: "Terjadi kesalahan. Silakan coba lagi.",
-        primaryButtonText: "Tutup",
-      });
-      AuthService.logout();
+      
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          setAlert({
+            isOpen: true,
+            type: "error",
+            title: "Error!",
+            message: "Username atau Password Salah!",
+            primaryButtonText: "Tutup",
+          });
+        } else {
+          setAlert({
+            isOpen: true,
+            type: "error",
+            title: "Error!",
+            message: error.message || "Terjadi kesalahan. Silakan coba lagi.",
+            primaryButtonText: "Tutup",
+          });
+        }
+      } else {
+        setAlert({
+          isOpen: true,
+          type: "error",
+          title: "Error!",
+          message: "Tidak dapat terhubung ke server. Pastikan backend sedang berjalan.",
+          primaryButtonText: "Tutup",
+        });
+      }
+      
+      authService.logout();
     } finally {
       setIsSubmitting(false);
     }

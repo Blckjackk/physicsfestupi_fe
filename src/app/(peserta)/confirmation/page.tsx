@@ -2,14 +2,19 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'next/navigation';
 import Image from 'next/image';
 
 export default function ConfirmationPage() {
   const router = useRouter();
 
   const handleFinish = () => {
-    // Redirect ke halaman login atau dashboard
-    router.push('/login');
+    // Set flag for fresh login requirement
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('force_logout', 'true');
+    }
+    // Redirect ke halaman login dengan logout flag
+    router.push('/login?logout=true');
   };
 
   return (

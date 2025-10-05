@@ -8,13 +8,14 @@ import ExamHeader from '@/components/exam/ExamHeader';
 import QuestionCard from '@/components/exam/QuestionCard';
 import QuestionNavigation from '@/components/exam/QuestionNavigation';
 import AlertModal from '@/components/ui/alert-modal';
-import { AuthService, ExamService, initializeLocalStorage, Ujian, JawabanPeserta } from '@/lib/mockData';
+import { authService } from '@/services/auth.service';
+import { examService } from '@/services/exam.service';
+import type { Soal, ExamSessionResponse } from '@/types/api';
 
 export default function ExamPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [ujianData, setUjianData] = useState<Ujian | null>(null);
-  const [userId, setUserId] = useState<string>('');
+  const [examSession, setExamSession] = useState<ExamSessionResponse | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -30,78 +31,79 @@ export default function ExamPage() {
 
   // Initialize and load data
   useEffect(() => {
-    initializeLocalStorage();
-    
-    // Check authentication
-    const currentUser = AuthService.getCurrentUser();
-    if (!currentUser || currentUser.role !== 'peserta') {
-      router.push('/login');
-      return;
-    }
-
-    setUserId(currentUser.id);
-
-    // Load ujian data
-    if (currentUser.ujianId) {
-      const ujian = ExamService.getUjian(currentUser.ujianId);
-      if (ujian) {
-        setUjianData(ujian);
-        
-        // Check if already completed
-        const existingJawaban = ExamService.getJawaban(currentUser.id, ujian.id);
-        if (existingJawaban && existingJawaban.waktuSelesai) {
-          // Already completed
-          setAlertConfig({
-            type: 'info',
-            title: 'Info',
-            message: 'Anda sudah menyelesaikan ujian ini.',
-          });
-          setShowAlert(true);
-          setTimeout(() => {
-            AuthService.logout();
-            router.push('/login');
-          }, 3000);
-          return;
-        }
-
-        // Load existing answers if any
-        if (existingJawaban) {
-          setAnswers(existingJawaban.jawaban);
-          setDoubtfulQuestions(existingJawaban.raguRagu);
-          
-          // Calculate remaining time
-          const waktuMulai = new Date(existingJawaban.waktuMulai);
-          const sekarang = new Date();
-          const elapsedSeconds = Math.floor((sekarang.getTime() - waktuMulai.getTime()) / 1000);
-          const remainingSeconds = (ujian.durasi * 60) - elapsedSeconds;
-          setTimeLeft(Math.max(0, remainingSeconds));
-        } else {
-          // Initialize new exam session
-          const newJawaban: JawabanPeserta = {
-            userId: currentUser.id,
-            ujianId: ujian.id,
-            jawaban: {},
-            raguRagu: [],
-            waktuMulai: new Date(),
-          };
-          ExamService.saveJawaban(newJawaban);
-          setTimeLeft(ujian.durasi * 60);
-        }
-      } else {
-        setAlertConfig({
-          type: 'error',
-          title: 'Error',
-          message: 'Data ujian tidak ditemukan.',
-        });
-        setShowAlert(true);
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
+    const loadExamSession = async () => {
+      // Check authentication
+      if (!authService.isAuthenticated()) {
+        router.push('/login');
         return;
       }
-    }
 
-    setIsLoading(false);
+      const currentUser = authService.getAuthUser();
+      if (!currentUser || currentUser.role !== 'peserta') {
+        router.push('/login');
+        return;
+      }
+
+      try {
+        // For testing: use ujian_id = 1 (Fisika Dasar A)
+        // In production, this should come from the login response or user data
+        const ujianId = 1;
+        
+        // Load questions from Laravel API
+        const data = await examService.getExamSession(ujianId);
+        
+        // Laravel returns { ujian, total_soal, soal }
+        // Transform to our expected format
+        const transformedSession = {
+          ujian: data.ujian,
+          soal: data.soal,
+          aktivitas: { status: 'sedang_mengerjakan' }, // Simplified for now
+          waktu_tersisa_detik: 7200, // 2 hours default
+        };
+        
+        setExamSession(transformedSession);
+        
+        // Load existing answers from soal data
+        const savedAnswers: Record<number, string> = {};
+        data.soal.forEach((soal: any) => {
+          if (soal.jawaban_peserta) {
+            savedAnswers[soal.nomor_soal] = soal.jawaban_peserta.toUpperCase();
+          }
+        });
+        setAnswers(savedAnswers);
+        
+        // Set default time (should be calculated from ujian waktu_akhir)
+        setTimeLeft(7200); // 2 hours
+        
+        setIsLoading(false);
+      } catch (error: any) {
+        console.error('Failed to load exam session:', error);
+        setIsLoading(false);
+        
+        // Check if exam already submitted
+        const errorMessage = error?.message || error?.toString() || '';
+        if (errorMessage.toLowerCase().includes('sudah') || errorMessage.toLowerCase().includes('submit')) {
+          setAlertConfig({
+            type: 'info',
+            title: 'Info!',
+            message: 'Anda Sudah Mengerjakan Soal!',
+          });
+          setShowAlert(true);
+          
+          // Prevent further interaction - stay on empty page with modal
+          // User will be redirected after closing modal
+        } else {
+          setAlertConfig({
+            type: 'error',
+            title: 'Error',
+            message: 'Gagal memuat data ujian. Pastikan backend sedang berjalan.',
+          });
+          setShowAlert(true);
+        }
+      }
+    };
+
+    loadExamSession();
   }, [router]);
 
   // Timer countdown
@@ -135,18 +137,9 @@ export default function ExamPage() {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const saveProgress = () => {
-    if (!ujianData || !userId) return;
-
-    const jawabanPeserta: JawabanPeserta = {
-      userId,
-      ujianId: ujianData.id,
-      jawaban: answers,
-      raguRagu: doubtfulQuestions,
-      waktuMulai: new Date(Date.now() - ((ujianData.durasi * 60 - timeLeft) * 1000)),
-    };
-
-    ExamService.saveJawaban(jawabanPeserta);
+  const saveProgress = async () => {
+    // Progress is auto-saved when selecting answers via handleSelectAnswer
+    // This function is kept for compatibility with timer auto-save
   };
 
   const handleTimeOut = () => {
@@ -163,7 +156,9 @@ export default function ExamPage() {
     }, 2000);
   };
 
-  const handleSelectAnswer = (label: string) => {
+  const handleSelectAnswer = async (label: string) => {
+    if (!examSession) return;
+    
     const newAnswers = { ...answers, [currentQuestion]: label };
     setAnswers(newAnswers);
     
@@ -172,27 +167,36 @@ export default function ExamPage() {
       setDoubtfulQuestions(doubtfulQuestions.filter((q) => q !== currentQuestion));
     }
     
-    // Auto-save
-    saveProgress();
-  };
-
-  const handleMarkDoubtful = () => {
-    if (!doubtfulQuestions.includes(currentQuestion)) {
-      setDoubtfulQuestions([...doubtfulQuestions, currentQuestion]);
-      setAlertConfig({
-        type: 'info',
-        title: 'Soal Ditandai',
-        message: 'Soal ini ditandai ragu-ragu. Anda dapat kembali mengerjakan nanti.',
+    // Auto-save to Laravel API
+    try {
+      const currentSoal = examSession.soal[currentQuestion - 1];
+      await examService.submitAnswer({
+        soal_id: currentSoal.id,
+        jawaban_user: label,
+        ujian_id: examSession.ujian.id,
       });
-      setShowAlert(true);
-      saveProgress();
+    } catch (error) {
+      console.error('Failed to save answer:', error);
+      // Don't show error to user, just log it
     }
   };
 
-  const handleNext = () => {
-    if (!ujianData) return;
+  const handleMarkDoubtful = () => {
+    // Toggle doubtful status
+    if (doubtfulQuestions.includes(currentQuestion)) {
+      // Remove from doubtful
+      setDoubtfulQuestions(doubtfulQuestions.filter((q) => q !== currentQuestion));
+    } else {
+      // Add to doubtful
+      setDoubtfulQuestions([...doubtfulQuestions, currentQuestion]);
+    }
+    saveProgress();
+  };
 
-    if (currentQuestion < ujianData.soal.length) {
+  const handleNext = () => {
+    if (!examSession) return;
+
+    if (currentQuestion < examSession.soal.length) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       // Last question - show confirmation to submit
@@ -211,74 +215,69 @@ export default function ExamPage() {
   };
 
   const handleConfirmSubmit = () => {
-    if (!ujianData) return;
-
-    const unansweredCount = ujianData.soal.length - Object.keys(answers).length;
-    
-    if (unansweredCount > 0) {
-      setAlertConfig({
-        type: 'warning',
-        title: 'Peringatan',
-        message: `Anda masih memiliki ${unansweredCount} soal yang belum dijawab. Yakin ingin mengumpulkan?`,
-      });
-    } else {
-      setAlertConfig({
-        type: 'info',
-        title: 'Konfirmasi',
-        message: 'Apakah Anda yakin ingin mengumpulkan ujian? Pastikan semua jawaban sudah benar.',
-      });
-    }
+    setAlertConfig({
+      type: 'warning',
+      title: 'Peringatan!',
+      message: 'Pastikan semua jawaban sudah diisi. Apakah Anda yakin ingin menyelesaikan ujian ini sekarang?',
+    });
     setShowAlert(true);
   };
 
-  const handleSubmitExam = () => {
-    if (!ujianData || !userId) return;
+  const handleSubmitExam = async () => {
+    if (!examSession) return;
 
-    // Calculate score
-    const skor = ExamService.hitungSkor(ujianData, answers);
+    try {
+      // Close the warning modal first
+      setShowAlert(false);
+      
+      // Submit exam to Laravel API
+      const result = await examService.submitExam(examSession.ujian.id);
 
-    // Save final jawaban with score
-    const jawabanPeserta: JawabanPeserta = {
-      userId,
-      ujianId: ujianData.id,
-      jawaban: answers,
-      raguRagu: doubtfulQuestions,
-      waktuMulai: new Date(Date.now() - ((ujianData.durasi * 60 - timeLeft) * 1000)),
-      waktuSelesai: new Date(),
-      skor,
-    };
-
-    ExamService.saveJawaban(jawabanPeserta);
-
-    setAlertConfig({
-      type: 'success',
-      title: 'Berhasil',
-      message: `Ujian berhasil dikumpulkan! Skor Anda: ${skor.toFixed(2)}`,
-    });
-    setShowAlert(true);
-    
-    // Redirect to confirmation page after 3 seconds
-    setTimeout(() => {
-      AuthService.logout();
-      router.push('/confirmation');
-    }, 3000);
+      // Laravel returns { peserta_id, ujian_id, nilai_total, total_soal, total_jawaban, total_benar, total_salah }
+      setAlertConfig({
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Berhasil Submit!',
+      });
+      setShowAlert(true);
+      
+      // Clear authentication and redirect to confirmation page after 2 seconds
+      setTimeout(() => {
+        authService.logout(); // Clear token and user data
+        router.push('/confirmation');
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to submit exam:', error);
+      setAlertConfig({
+        type: 'error',
+        title: 'Gagal',
+        message: 'Gagal mengumpulkan ujian. Silakan coba lagi.',
+      });
+      setShowAlert(true);
+    }
   };
 
   const handleLogout = () => {
-    setAlertConfig({
-      type: 'warning',
-      title: 'Konfirmasi Keluar',
-      message: 'Apakah Anda yakin ingin keluar? Progres ujian Anda akan tersimpan.',
-    });
-    setShowAlert(true);
+    authService.logout();
+    router.push('/login');
   };
 
   const closeAlert = () => {
     setShowAlert(false);
+    
+    // If showing "Anda Sudah Mengerjakan Soal" message, logout and redirect
+    if (alertConfig.title === 'Info!' && alertConfig.message === 'Anda Sudah Mengerjakan Soal!') {
+      authService.logout();
+      // Set flag to force clean login
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('force_logout', 'true');
+      }
+      router.push('/login?logout=true');
+    }
   };
 
   // Show loading state
-  if (isLoading || !ujianData) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#F9F9F9]">
         <div className="text-center">
@@ -289,8 +288,34 @@ export default function ExamPage() {
     );
   }
 
-  const currentQuestionData = ujianData.soal[currentQuestion - 1];
+  // If exam session failed to load, show alert modal on blank page
+  if (!examSession) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F9F9F9]">
+        <AlertModal
+          isOpen={showAlert}
+          onClose={closeAlert}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          primaryButtonText="Tutup"
+          onPrimaryClick={closeAlert}
+        />
+      </div>
+    );
+  }
+
+  const currentQuestionData = examSession.soal[currentQuestion - 1];
   const answeredQuestions = Object.keys(answers).map(Number);
+  
+  // Convert question data to expected format for QuestionCard
+  const questionOptions = [
+    { label: 'A', text: currentQuestionData.opsi_a || '' },
+    { label: 'B', text: currentQuestionData.opsi_b || '' },
+    { label: 'C', text: currentQuestionData.opsi_c || '' },
+    { label: 'D', text: currentQuestionData.opsi_d || '' },
+    { label: 'E', text: currentQuestionData.opsi_e || '' },
+  ].filter(opt => opt.text); // Filter out empty options
 
   return (
     <div className="flex h-screen flex-col bg-[#F9F9F9]">
@@ -306,7 +331,7 @@ export default function ExamPage() {
               <QuestionCard
                 questionNumber={currentQuestion}
                 questionText={currentQuestionData.pertanyaan}
-                answers={currentQuestionData.opsi.map(o => ({ label: o.label, text: o.teks }))}
+                answers={questionOptions}
                 selectedAnswer={answers[currentQuestion] || null}
                 onSelectAnswer={handleSelectAnswer}
               />
@@ -318,7 +343,7 @@ export default function ExamPage() {
               {currentQuestion > 1 ? (
                 <button
                   onClick={handlePrevious}
-                  className="flex items-center justify-center gap-2 rounded-xl border-2 border-gray-300 bg-white px-8 py-3 font-heading text-[16px] font-bold text-gray-700 shadow-md transition-all hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg active:scale-95"
+                  className="flex h-[50px] w-[240px] items-center justify-center gap-2 rounded-xl border-2 border-gray-300 bg-white font-heading text-[16px] font-bold text-gray-700 shadow-md transition-all hover:border-gray-400 hover:bg-gray-50 hover:shadow-lg active:scale-95"
                 >
                   <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
                   Kembali
@@ -327,10 +352,14 @@ export default function ExamPage() {
                 <div></div>
               )}
 
-              {/* Center: Ragu-Ragu Button */}
+              {/* Center: Ragu-Ragu Button - Toggle: White (not marked) → Yellow (marked) */}
               <button
                 onClick={handleMarkDoubtful}
-                className="absolute left-1/2 -translate-x-1/2 rounded-xl bg-[#ffac27] px-10 py-3 font-heading text-[16px] font-bold text-white shadow-md transition-all hover:bg-[#f09d15] hover:shadow-lg active:scale-95"
+                className={`absolute left-1/2 h-[50px] w-[240px] -translate-x-1/2 rounded-xl font-heading text-[16px] font-bold shadow-md transition-all hover:shadow-lg active:scale-95 ${
+                  doubtfulQuestions.includes(currentQuestion)
+                    ? 'bg-[#ffac27] text-white hover:bg-[#f09d15]'
+                    : 'border-2 border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+                }`}
               >
                 Ragu-Ragu
               </button>
@@ -338,10 +367,14 @@ export default function ExamPage() {
               {/* Right: Next/Submit Button */}
               <button
                 onClick={handleNext}
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#7a5cb3] px-8 py-3 font-heading text-[16px] font-bold text-white shadow-md transition-all hover:bg-[#6b4d9e] hover:shadow-lg active:scale-95"
+                className={`flex h-[50px] w-[240px] items-center justify-center gap-2 rounded-xl font-heading text-[16px] font-bold text-white shadow-md transition-all hover:shadow-lg active:scale-95 ${
+                  currentQuestion === examSession.soal.length
+                    ? 'bg-[#6b9e4d] hover:bg-[#5a8a3e]'
+                    : 'bg-[#7a5cb3] hover:bg-[#6b4d9e]'
+                }`}
               >
-                {currentQuestion === ujianData.soal.length ? 'Selesai' : 'Lanjut'}
-                {currentQuestion !== ujianData.soal.length && <ChevronRight className="h-5 w-5" strokeWidth={2.5} />}
+                {currentQuestion === examSession.soal.length ? 'Submit Jawaban' : 'Lanjut'}
+                {currentQuestion !== examSession.soal.length && <ChevronRight className="h-5 w-5" strokeWidth={2.5} />}
               </button>
             </div>
           </div>
@@ -349,7 +382,7 @@ export default function ExamPage() {
           {/* Right Column - Navigation (30%) */}
           <div className="flex-shrink-0" style={{ flexBasis: '30%' }}>
             <QuestionNavigation
-              totalQuestions={ujianData.soal.length}
+              totalQuestions={examSession.soal.length}
               currentQuestion={currentQuestion}
               answeredQuestions={answeredQuestions}
               doubtfulQuestions={doubtfulQuestions}
@@ -366,11 +399,18 @@ export default function ExamPage() {
         type={alertConfig.type}
         title={alertConfig.title}
         message={alertConfig.message}
-        primaryButtonText={alertConfig.title === 'Konfirmasi' ? 'Ya, Kumpulkan' : 'Tutup'}
+        primaryButtonText={alertConfig.title === 'Peringatan!' ? 'Submit' : alertConfig.type === 'success' ? 'Ok' : 'Tutup'}
+        secondaryButtonText={alertConfig.title === 'Peringatan!' ? 'Kembali' : undefined}
+        answeredCount={examSession ? Object.keys(answers).length : undefined}
+        totalQuestions={examSession ? examSession.soal.length : undefined}
+        timeRemaining={formatTime(timeLeft)}
         onPrimaryClick={() => {
-          if (alertConfig.title === 'Konfirmasi') {
+          if (alertConfig.title === 'Peringatan!') {
             handleSubmitExam();
           }
+          closeAlert();
+        }}
+        onSecondaryClick={() => {
           closeAlert();
         }}
       />
