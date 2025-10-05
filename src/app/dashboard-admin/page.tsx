@@ -22,12 +22,16 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // Struct untuk Ujian
 interface Ujian {
-    id: number;
+    no: number;
+    ujian_id: number; // ID utama sepertinya ini, bukan 'id'
     nama_ujian: string;
-    // Tambahkan properti lain yang mungkin Anda butuhkan
-    // pendaftar: number; (Ini sepertinya perlu di-query terpisah di backend)
-    // sedang_mengerjakan: number;
-    // selesai: number;
+    deskripsi: string;
+    waktu_mulai_pengerjaan: string;
+    waktu_akhir_pengerjaan: string;
+    jumlah_pendaftar: number;
+    sedang_mengerjakan: number;
+    selesai: number;
+    created_at: string;
 }
 
 export default function DashboardPage() {
@@ -46,9 +50,9 @@ export default function DashboardPage() {
                 }
 
                 const result = await response.json();
-
+                console.log('API Response Data:', result.data);
                 if (result.success) {
-                    setUjianData(result.data); // Simpan data ke state
+                    setUjianData(result.data.ujian_dashboard || []);
                 } else {
                     throw new Error(result.message || 'Gagal memuat data');
                 }
@@ -150,12 +154,12 @@ export default function DashboardPage() {
                                         </TableRow>
                                     ) : (
                                         ujianData.map((ujian, index) => (
-                                            <TableRow key={ujian.id} className='border-[#E4E4E4]'>
+                                            <TableRow key={ujian.ujian_id} className='border-[#E4E4E4]'>
                                                 <TableCell>{index + 1}</TableCell>
                                                 <TableCell>{ujian.nama_ujian}</TableCell>
-                                                <TableCell>Belum Dapet Endpoint</TableCell>
-                                                <TableCell>Belum Dapet Endpoint</TableCell>
-                                                <TableCell>Belum Dapet Endpoint</TableCell>
+                                                <TableCell>{ujian.jumlah_pendaftar}</TableCell>
+                                                <TableCell>{ujian.sedang_mengerjakan}</TableCell>
+                                                <TableCell>{ujian.selesai}</TableCell>
                                             </TableRow>
                                         ))
                                     )}

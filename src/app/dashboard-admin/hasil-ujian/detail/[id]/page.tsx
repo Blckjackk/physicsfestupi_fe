@@ -66,7 +66,7 @@ export default function DetailHasilUjian({ params }: { params: Promise<{ id: str
                                 <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{data?.nama_ujian}</p>
                             </div>
                             <div className="col-span-2 mx-8 p-4 mb-4">
-                                <p className="text-start text-black font-medium text-base">Username</p>
+                                <p className="text-start text-black font-medium text-base">Waktu Selesai</p>
                                 <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">dd/mm/yy --:--</p>
                             </div>
                         </div>
@@ -87,7 +87,7 @@ export default function DetailHasilUjian({ params }: { params: Promise<{ id: str
                                 <TableBody>
                                     {Array.from({ length: 10 }, (_, index) => index + 1).map((nomor) => (
                                         <TableRow key={nomor} className='border-[#E4E4E4]'>
-                                            <TableCell className="px-4">{nomor}</TableCell> {/* <-- Nomor dinamis */}
+                                            <TableCell className="px-4">{nomor}</TableCell>
                                             <TableCell>Seorang siswa melakukan...</TableCell>
                                             <TableCell>A</TableCell>
                                         </TableRow>

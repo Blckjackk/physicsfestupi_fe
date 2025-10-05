@@ -27,8 +27,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
+interface UjianOption {
+  id: number;
+  nama_ujian: string;
+}
+
 interface TambahPesertaProps {
-  onTambah: (data: { username: string; password: string; ujian: string }) => void;
+  onTambah: (data: { username: string; password: string; ujian_id: number }) => Promise<void>;
 }
 
 export function TambahPeserta({ onTambah }: TambahPesertaProps) {
@@ -36,38 +41,56 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
 
+  // State untuk data dari form
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [position, setPosition] = React.useState("Pilih Tipe Ujian");
+  const [selectedUjianId, setSelectedUjianId] = React.useState<number | null>(null);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  // State untuk menampung daftar ujian dari API
+  const [ujianOptions, setUjianOptions] = React.useState<UjianOption[]>([]);
+
+  // Ambil daftar ujian saat dialog pertama kali akan dibuka
+  React.useEffect(() => {
+    if (isFormOpen) {
+      const fetchUjianOptions = async () => {
+        try {
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+          const response = await fetch(`${apiBaseUrl}/api/admin/ujian`); // Asumsi endpoint ini ada
+          const result = await response.json();
+          if (result.success) {
+            setUjianOptions(result.data.ujian_dashboard || []);
+          }
+        } catch (error) {
+          console.error("Gagal mengambil daftar ujian:", error);
+        }
+      };
+      fetchUjianOptions();
+    }
+  }, [isFormOpen]); // Jalankan setiap kali dialog dibuka
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // --- AREA VALIDASI INPUT ---
-    if (!username.trim()) {
-      alert("Username tidak boleh kosong.");
-      return; // Validasi username
-    }
-    if (password.length < 6) {
-      alert("Password minimal harus 6 karakter.");
-      return; // Validasi panjang password
-    }
-    if (position === "Pilih Tipe Ujian") {
-      alert("Silakan pilih tipe ujian terlebih dahulu.");
-      return; // Validasi tipe ujian
+    if (!username.trim() || password.length < 6 || !selectedUjianId) {
+      alert("Harap lengkapi semua data.");
+      return;
     }
 
-    const formData = { username, password, ujian: position };
-    onTambah(formData);
-    // console.log("Data yang akan dikirim:", formData);
+    const formData = {
+      username,
+      password,
+      ujian_id: selectedUjianId
+    };
+
+    await onTambah(formData); // Tunggu proses onTambah selesai
 
     setIsFormOpen(false);
     setIsSuccessOpen(true);
 
-    // Reset form setelah submit
+    // Reset form
     setUsername("");
     setPassword("");
-    setPosition("Pilih Tipe Ujian");
+    setSelectedUjianId(null);
   };
 
   return (
@@ -105,15 +128,21 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
                 <Label className="text-black" htmlFor="ujian-1">Ujian</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="w-full justify-start" variant="outline">{position}</Button>
+                    <Button className="w-full justify-start" variant="outline">
+                      {selectedUjianId
+                        ? ujianOptions.find(u => u.id === selectedUjianId)?.nama_ujian
+                        : "Pilih Tipe Ujian"}
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 text-black bg-white">
                     <DropdownMenuLabel>Pilih Tipe</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuRadioGroup value={position} onValueChange={setPosition}>
-                      <DropdownMenuRadioItem value="Ujian A">Ujian A</DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="Ujian B">Ujian B</DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="Ujian C">Ujian C</DropdownMenuRadioItem>
+                    <DropdownMenuRadioGroup value={selectedUjianId?.toString()} onValueChange={(value) => setSelectedUjianId(Number(value))}>
+                      {ujianOptions.map((ujian) => (
+                        <DropdownMenuRadioItem key={ujian.id} value={ujian.id.toString()}>
+                          {ujian.nama_ujian}
+                        </DropdownMenuRadioItem>
+                      ))}
                     </DropdownMenuRadioGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>

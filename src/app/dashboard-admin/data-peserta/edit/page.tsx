@@ -31,12 +31,20 @@ import { Pencil } from "lucide-react"
 interface EditPesertaProps {
     peserta: {
         id: string;
+        no: number;
         username: string;
-        password: string;
+        password?: string;
         ujian: string;
+        status: string;
     };
     onEdit: (id: string, data: { username: string; password: string; ujian: string }) => void;
 }
+
+type PesertaUpdatePayload = {
+    username: string;
+    password?: string;
+    ujian: string;
+};
 
 export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
     // 1. State untuk mengontrol kedua dialog
@@ -50,7 +58,7 @@ export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
     React.useEffect(() => {
         if (isFormOpen) {
             setUsername(peserta.username);
-            setPassword(peserta.password);
+            setPassword(peserta.password || ""); // Gunakan string kosong jika password undefined
             setPosition(peserta.ujian);
         }
     }, [isFormOpen, peserta]);
