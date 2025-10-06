@@ -333,17 +333,43 @@ export default function DashboardPage() {
 
     const [isConfirmHapusPilihOpen, setIsConfirmHapusPilihOpen] = React.useState(false);
     const [isSuccessHapusPilihOpen, setIsSuccessHapusPilihOpen] = React.useState(false);
-    const handleHapusPilih = () => {
-        // Filter state 'peserta'
-        setPeserta(prevPeserta =>
-            prevPeserta.filter(p => !selectedRows.includes(p.id))
-        );
+    const handleHapusPilih = async () => {
+        // Jangan lakukan apa-apa jika tidak ada baris yang dipilih
+        if (selectedRows.length === 0) {
+            return;
+        }
 
-        // Kosongkan kembali daftar baris yang terpilih
-        setSelectedRows([]);
+        try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            // Gunakan endpoint untuk batch delete
+            const response = await fetch(`${apiBaseUrl}/api/admin/peserta/batch-delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                // Kirim array 'selectedRows' di dalam sebuah objek dengan key 'peserta_ids'
+                body: JSON.stringify({ peserta_ids: selectedRows }),
+            });
 
-        // Buka dialog sukses
-        setIsSuccessHapusPilihOpen(true);
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal menghapus peserta terpilih.');
+            }
+
+            // Jika API sukses, baru update state di frontend
+            setPeserta(prev => prev.filter(p => !selectedRows.includes(p.id)));
+            setSelectedRows([]);
+            setIsSuccessHapusPilihOpen(true);
+
+        } catch (error: any) {
+            console.error('Error:', error);
+            alert(`Gagal: ${error.message}`);
+        } finally {
+            // Tutup dialog konfirmasi baik berhasil maupun gagal
+            setIsConfirmHapusPilihOpen(false);
+        }
     };
 
     return (
@@ -357,7 +383,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Komponen Statistik Peserta biar tinggal panggil euy */}
-                <StatistikPeserta data={statistik}/>
+                <StatistikPeserta data={statistik} />
 
                 <div className='flex justify-end'>
                     <TambahPeserta onTambah={handleTambahPeserta} />
