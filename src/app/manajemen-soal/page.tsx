@@ -680,7 +680,7 @@ function ExamFormModal({
               type="text"
               value={formData.nama_ujian}
               onChange={(e) => setFormData({ ...formData, nama_ujian: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
               placeholder="Ujian A"
               required
             />
@@ -695,7 +695,7 @@ function ExamFormModal({
               value={formData.deskripsi}
               onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-inter text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
               placeholder="Deskripsi ujian (opsional)"
             />
           </div>
@@ -709,7 +709,7 @@ function ExamFormModal({
               type="datetime-local"
               value={formData.waktu_mulai_pengerjaan}
               onChange={(e) => setFormData({ ...formData, waktu_mulai_pengerjaan: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-inter text-sm text-gray-900 transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
               required
             />
           </div>
@@ -723,7 +723,7 @@ function ExamFormModal({
               type="datetime-local"
               value={formData.waktu_akhir_pengerjaan}
               onChange={(e) => setFormData({ ...formData, waktu_akhir_pengerjaan: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-inter text-sm text-gray-900 transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
               required
             />
           </div>

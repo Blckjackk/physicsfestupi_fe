@@ -2,6 +2,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import FormattedText from '../FormattedText';
 
 interface AnswerOptionProps {
   label: string;
@@ -90,15 +91,15 @@ export default function AnswerOption({
         {label}
       </div>
 
-      {/* Answer Text */}
-      <span
+      {/* Answer Text with Formatting Support */}
+      <div
         className={`
           flex-1 font-body text-[14px] leading-relaxed
           ${isSelected ? 'font-semibold text-white' : 'text-gray-800'}
         `}
       >
-        {text}
-      </span>
+        <FormattedText text={text} />
+      </div>
 
       {/* Check Icon (only when selected) */}
       {isSelected && (

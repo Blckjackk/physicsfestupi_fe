@@ -37,6 +37,70 @@ export default function EditSoalPage() {
   const [jawabanBenar, setJawabanBenar] = useState('A');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Helper function to insert formatting tags into textarea
+  const insertFormatting = (currentValue: string, setValue: (val: string) => void, before: string, after: string) => {
+    const textarea = document.getElementById('soal-textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = currentValue.substring(start, end);
+    
+    // If text is selected, wrap it with formatting tags
+    if (selectedText) {
+      const newValue = currentValue.substring(0, start) + before + selectedText + after + currentValue.substring(end);
+      setValue(newValue);
+      
+      // Set cursor position after the formatted text
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + before.length, end + before.length);
+      }, 0);
+    } else {
+      // If no selection, insert formatting tags at cursor position
+      const newValue = currentValue.substring(0, start) + before + after + currentValue.substring(end);
+      setValue(newValue);
+      
+      // Set cursor between the tags
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + before.length, start + before.length);
+      }, 0);
+    }
+  };
+
+  // Helper function for input fields (not textarea)
+  const insertFormattingForInput = (inputId: string, currentValue: string, setValue: (val: string) => void, before: string, after: string) => {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (!input) return;
+
+    const start = input.selectionStart || 0;
+    const end = input.selectionEnd || 0;
+    const selectedText = currentValue.substring(start, end);
+    
+    // If text is selected, wrap it with formatting tags
+    if (selectedText) {
+      const newValue = currentValue.substring(0, start) + before + selectedText + after + currentValue.substring(end);
+      setValue(newValue);
+      
+      // Set cursor position after the formatted text
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(start + before.length, end + before.length);
+      }, 0);
+    } else {
+      // If no selection, insert formatting tags at cursor position
+      const newValue = currentValue.substring(0, start) + before + after + currentValue.substring(end);
+      setValue(newValue);
+      
+      // Set cursor between the tags
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(start + before.length, start + before.length);
+      }, 0);
+    }
+  };
+
   // Load existing question data from backend
   useEffect(() => {
     const loadQuestionData = async () => {
@@ -208,51 +272,52 @@ export default function EditSoalPage() {
                 </div>
               </div>
 
-              {/* Soal - Rich Text Editor Placeholder */}
+              {/* Soal - Rich Text Editor with Formatting */}
               <div>
                 <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
                   Soal
                 </label>
                 <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all">
-                  {/* Toolbar */}
+                  {/* Toolbar with Working Buttons */}
                   <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-2">
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Left">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '[align-left]', '[/align-left]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Left">
                       <span className="text-sm font-semibold text-gray-700">≡</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Center">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '[align-center]', '[/align-center]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Center">
                       <span className="text-sm font-semibold text-gray-700">≣</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Right">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '[align-right]', '[/align-right]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Right">
                       <span className="text-sm font-semibold text-gray-700">☰</span>
                     </button>
                     <div className="mx-1 h-6 w-px bg-gray-300"></div>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bullet List">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '• ', '')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bullet Point">
                       <span className="text-sm font-semibold text-gray-700">⚏</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bold">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '**', '**')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bold">
                       <span className="text-sm font-bold text-gray-700">B</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Underline">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '__', '__')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Underline">
                       <span className="text-sm font-semibold text-gray-700">U</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Text Color">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '[color]', '[/color]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Text Color">
                       <span className="text-sm text-gray-700">A</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Paragraph">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '\n\n', '\n\n')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="New Paragraph">
                       <span className="text-sm text-gray-700">P</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Script">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '[script]', '[/script]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Subscript/Superscript">
                       <span className="text-sm text-gray-700">ℬ</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Heading">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '# ', '')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Heading">
                       <span className="text-sm text-gray-700">H</span>
                     </button>
-                    <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Italic">
+                    <button type="button" onClick={() => insertFormatting(soal, setSoal, '*', '*')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Italic">
                       <span className="text-sm italic text-gray-700">I</span>
                     </button>
                   </div>
                   {/* Text Area */}
                   <textarea
+                    id="soal-textarea"
                     value={soal}
                     onChange={(e) => setSoal(e.target.value)}
                     rows={6}
@@ -333,50 +398,51 @@ export default function EditSoalPage() {
                         Jawaban {option.label}
                       </label>
                       <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all bg-white">
-                        {/* Toolbar */}
+                        {/* Toolbar with Working Formatting */}
                         <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-2">
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '[align-left]', '[/align-left]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Left">
                             <span className="text-sm font-semibold text-gray-700">≡</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '[align-center]', '[/align-center]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Center">
                             <span className="text-sm font-semibold text-gray-700">≣</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '[align-right]', '[/align-right]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Right">
                             <span className="text-sm font-semibold text-gray-700">☰</span>
                           </button>
                           <div className="mx-1 h-6 w-px bg-gray-300"></div>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '• ', '')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bullet Point">
                             <span className="text-sm font-semibold text-gray-700">⚏</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '**', '**')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bold">
                             <span className="text-sm font-bold text-gray-700">B</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '__', '__')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Underline">
                             <span className="text-sm font-semibold text-gray-700">U</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '[color]', '[/color]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Text Color">
                             <span className="text-sm text-gray-700">A</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '\n\n', '\n\n')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="New Paragraph">
                             <span className="text-sm text-gray-700">P</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '[script]', '[/script]')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Subscript/Superscript">
                             <span className="text-sm text-gray-700">ℬ</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '# ', '')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Heading">
                             <span className="text-sm text-gray-700">H</span>
                           </button>
-                          <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
+                          <button type="button" onClick={() => insertFormattingForInput(`jawaban-${option.label}`, option.value, option.setValue, '*', '*')} className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Italic">
                             <span className="text-sm italic text-gray-700">I</span>
                           </button>
                         </div>
                         {/* Input */}
                         <input
                           type="text"
+                          id={`jawaban-${option.label}`}
                           value={option.value}
                           onChange={(e) => option.setValue(e.target.value)}
                           className="w-full bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                          placeholder={`#123${option.label.charCodeAt(0) - 64}`}
+                          placeholder="Masukkan jawaban..."
                           required
                         />
                       </div>
