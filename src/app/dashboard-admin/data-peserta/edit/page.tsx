@@ -63,7 +63,7 @@ export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
             const fetchUjianOptions = async () => {
                 try {
                     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-                    const response = await fetch(`${apiBaseUrl}/api/admin/ujian`);
+                    const response = await fetch(`${apiBaseUrl}/admin/ujian`);
                     const result = await response.json();
                     if (result.success) {
                         setUjianOptions(result.data.ujian_dashboard || []);

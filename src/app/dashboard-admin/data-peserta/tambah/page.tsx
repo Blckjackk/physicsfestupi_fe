@@ -58,7 +58,7 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
       const fetchUjianOptions = async () => {
         try {
           const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-          const response = await fetch(`${apiBaseUrl}/api/admin/ujian`); // Asumsi endpoint ini ada
+          const response = await fetch(`${apiBaseUrl}/admin/ujian`); // Asumsi endpoint ini ada
           const result = await response.json();
           if (result.success) {
             setUjianOptions(result.data.ujian_dashboard || []);
