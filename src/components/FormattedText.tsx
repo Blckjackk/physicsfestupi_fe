@@ -7,13 +7,16 @@
 import React from 'react';
 
 interface FormattedTextProps {
-  text: string;
+  text: string | null | undefined;
   className?: string;
 }
 
 export default function FormattedText({ text, className = '' }: FormattedTextProps) {
   // Function to parse and convert formatting tags to HTML
   const parseFormatting = (input: string): string => {
+    // Handle null, undefined, or empty string
+    if (!input) return '';
+    
     let output = input;
 
     // Bold: **text** → <strong>text</strong>
@@ -32,13 +35,13 @@ export default function FormattedText({ text, className = '' }: FormattedTextPro
     output = output.replace(/^• (.+)$/gm, '<li class="ml-4">$1</li>');
 
     // Wrap consecutive <li> tags in <ul>
-    output = output.replace(/(<li.*?<\/li>\n?)+/g, '<ul class="list-disc list-inside mb-2">$&</ul>');
+    output = output.replace(/(<li.*?<\/li>[\s]*)+/g, '<ul class="list-disc list-inside mb-2">$&</ul>');
 
-    // Paragraph breaks: double newline
+    // Paragraph breaks: double newline (apply before single newline)
     output = output.replace(/\n\n/g, '<br/><br/>');
 
-    // Single newline
-    output = output.replace(/\n/g, '<br/>');
+    // Single newline (but preserve structure for lists)
+    output = output.replace(/\n(?!<\/ul>)/g, '<br/>');
 
     // Custom tags - Align Left
     output = output.replace(/\[align-left\](.*?)\[\/align-left\]/g, '<div class="text-left">$1</div>');
@@ -49,6 +52,15 @@ export default function FormattedText({ text, className = '' }: FormattedTextPro
     // Custom tags - Align Right
     output = output.replace(/\[align-right\](.*?)\[\/align-right\]/g, '<div class="text-right">$1</div>');
 
+    // Custom tags - Justify
+    output = output.replace(/\[justify\](.*?)\[\/justify\]/g, '<div class="text-justify">$1</div>');
+
+    // Custom tags - Indent
+    output = output.replace(/\[indent\](.*?)\[\/indent\]/g, '<div class="ml-8">$1</div>');
+
+    // Custom tags - Outdent
+    output = output.replace(/\[outdent\](.*?)\[\/outdent\]/g, '<div class="ml-0">$1</div>');
+
     // Custom tags - Color (example, you can enhance this)
     output = output.replace(/\[color\](.*?)\[\/color\]/g, '<span class="text-purple-600">$1</span>');
 
@@ -58,7 +70,7 @@ export default function FormattedText({ text, className = '' }: FormattedTextPro
     return output;
   };
 
-  const formattedHtml = parseFormatting(text);
+  const formattedHtml = parseFormatting(text || '');
 
   return (
     <div

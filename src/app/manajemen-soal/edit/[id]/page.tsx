@@ -12,6 +12,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
+import FormattedText from '@/components/FormattedText';
 import { adminService, type Ujian, type Soal } from '@/services/admin.service';
 import { ArrowLeft, Pencil, Trash, Plus } from 'lucide-react';
 
@@ -450,7 +451,10 @@ function QuestionCard({
 
       {/* Question Text */}
       <div className="mb-6">
-        <p className="font-inter text-base leading-relaxed text-gray-800 whitespace-pre-wrap">{question.pertanyaan}</p>
+        <FormattedText 
+          text={question.pertanyaan} 
+          className="font-inter text-base leading-relaxed text-gray-800"
+        />
       </div>
 
       {/* Answer Options */}
@@ -474,7 +478,10 @@ function QuestionCard({
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-inter text-sm text-gray-800">{opsi.teks}</p>
+              <FormattedText 
+                text={opsi.teks} 
+                className="font-inter text-sm text-gray-800"
+              />
             </div>
           </div>
         ))}
