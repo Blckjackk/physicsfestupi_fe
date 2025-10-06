@@ -342,7 +342,7 @@ export default function DashboardPage() {
         try {
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
             // Gunakan endpoint untuk batch delete
-            const response = await fetch(`${apiBaseUrl}/api/admin/peserta/batch-delete`, {
+            const response = await fetch(`${apiBaseUrl}/admin/peserta/batch-delete`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
