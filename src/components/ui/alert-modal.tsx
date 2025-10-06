@@ -18,6 +18,10 @@ interface AlertModalProps {
   secondaryButtonText?: string;
   onPrimaryClick?: () => void;
   onSecondaryClick?: () => void;
+  // Additional props for exam submit confirmation
+  answeredCount?: number;
+  totalQuestions?: number;
+  timeRemaining?: string;
 }
 
 const alertConfig = {
@@ -31,8 +35,8 @@ const alertConfig = {
   success: {
     icon: CheckCircle,
     iconBgColor: "bg-green-50",
-    iconColor: "text-[#749221]",
-    buttonBgColor: "bg-[#7a5cb3] hover:bg-[#6b4d9f]",
+    iconColor: "text-[#6b9e4d]",
+    buttonBgColor: "bg-[#6b9e4d] hover:bg-[#5a8a3e]",
     secondaryButtonBgColor: "bg-gray-600 hover:bg-gray-700",
     borderColor: "border-green-100",
   },
@@ -40,7 +44,7 @@ const alertConfig = {
     icon: AlertTriangle,
     iconBgColor: "bg-orange-50",
     iconColor: "text-[#ffac27]",
-    buttonBgColor: "bg-[#ffac27] hover:bg-[#e69820]",
+    buttonBgColor: "bg-[#6b9e4d] hover:bg-[#5a8a3e]",
     borderColor: "border-orange-100",
   },
   info: {
@@ -64,6 +68,9 @@ export default function AlertModal({
   secondaryButtonText,
   onPrimaryClick,
   onSecondaryClick,
+  answeredCount,
+  totalQuestions,
+  timeRemaining,
 }: AlertModalProps) {
   const config = alertConfig[type];
   const IconComponent = config.icon;
@@ -151,6 +158,39 @@ export default function AlertModal({
           {message}
         </p>
 
+        {/* Exam Submit Info (for warning type with exam data) */}
+        {type === 'warning' && answeredCount !== undefined && totalQuestions !== undefined && timeRemaining && (
+          <div className="mb-6 space-y-3">
+            {/* Soal yang Sudah Diisi */}
+            <div>
+              <p className="mb-2 text-center font-heading text-[14px] font-semibold text-gray-600">
+                Soal yang Sudah Diisi
+              </p>
+              <div className="flex justify-center">
+                <div className="rounded-xl border-2 border-gray-300 bg-white px-8 py-2">
+                  <p className="font-heading text-[18px] font-bold text-gray-800">
+                    {answeredCount} Dari {totalQuestions} Soal
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Waktu Tersisa */}
+            <div>
+              <p className="mb-2 text-center font-heading text-[14px] font-semibold text-gray-600">
+                Waktu Tersisa
+              </p>
+              <div className="flex justify-center">
+                <div className="rounded-xl border-2 border-gray-300 bg-white px-8 py-2">
+                  <p className="font-heading text-[18px] font-bold text-gray-800">
+                    {timeRemaining}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Timer Display (untuk success alert) */}
         {showTimer && timerText && (
           <div className="mb-6 flex justify-center">
@@ -162,17 +202,17 @@ export default function AlertModal({
 
         {/* Action Buttons */}
         <div className={`flex gap-3 ${secondaryButtonText ? "flex-row" : "flex-col"}`}>
-          {/* Secondary Button (Kembali) */}
+          {/* Secondary Button (Kembali) - Left side */}
           {secondaryButtonText && (
             <button
               onClick={handleSecondaryClick}
-              className="flex-1 rounded-lg border-2 border-gray-300 bg-gray-100 px-6 py-3 font-heading text-[15px] font-semibold text-gray-700 transition-all hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-300"
+              className="flex-1 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-heading text-[15px] font-semibold text-gray-700 transition-all hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-gray-300"
             >
               {secondaryButtonText}
             </button>
           )}
-
-          {/* Primary Button */}
+          
+          {/* Primary Button (Submit) - Right side */}
           <button
             onClick={handlePrimaryClick}
             className={`flex-1 rounded-lg px-6 py-3 font-heading text-[15px] font-semibold text-white shadow-lg transition-all hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-offset-2 ${config.buttonBgColor}`}

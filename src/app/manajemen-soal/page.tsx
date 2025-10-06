@@ -4,8 +4,7 @@
 /**
  * ExamManagementPage Component
  * 
- * DINAMISASI: Menggunakan AdminUjianService dari mockData.ts
- * Data disimpan di localStorage untuk simulasi backend
+ * FULLY INTEGRATED WITH LARAVEL BACKEND API
  * 
  * FEATURES:
  * - CRUD ujian (Create, Read, Update, Delete)
@@ -19,7 +18,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
-import { AdminUjianService, initializeLocalStorage, type Ujian } from '@/lib/mockData';
+import { adminService, type Ujian } from '@/services/admin.service';
+import { ApiError } from '@/lib/api';
 import { 
   Search, 
   Plus, 
@@ -34,11 +34,10 @@ import {
 } from 'lucide-react';
 
 type ExamForm = {
-  nama: string;
-  durasi: number;
+  nama_ujian: string;
   deskripsi: string;
-  mulai: string;
-  akhir: string;
+  waktu_mulai_pengerjaan: string;
+  waktu_akhir_pengerjaan: string;
 };
 
 type AlertState = {
@@ -66,19 +65,28 @@ export default function ExamManagementPage() {
 
   // Load ujian data on mount
   useEffect(() => {
-    initializeLocalStorage();
     loadExams();
   }, []);
 
-  const loadExams = () => {
-    const allExams = AdminUjianService.getAllUjian();
-    setExams(allExams);
+  const loadExams = async () => {
+    try {
+      const data = await adminService.getUjian();
+      setExams(data);
+    } catch (error) {
+      console.error('Failed to load exams:', error);
+      setAlert({
+        show: true,
+        type: 'error',
+        title: 'Error!',
+        message: 'Gagal memuat data ujian'
+      });
+    }
   };
 
   // Filtered and paginated data
   const filteredExams = useMemo(() => {
     return exams.filter(exam => 
-      exam.nama.toLowerCase().includes(searchQuery.toLowerCase())
+      exam.nama_ujian.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [exams, searchQuery]);
 
@@ -108,10 +116,20 @@ export default function ExamManagementPage() {
     setSelectedIds(newSet);
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     try {
       const idsArray = Array.from(selectedIds);
-      const deletedCount = AdminUjianService.deleteMultipleUjian(idsArray);
+      let deletedCount = 0;
+
+      // Delete each ujian individually
+      for (const id of idsArray) {
+        try {
+          await adminService.deleteUjian(Number(id));
+          deletedCount++;
+        } catch (err) {
+          console.error(`Failed to delete ujian ${id}:`, err);
+        }
+      }
       
       if (deletedCount > 0) {
         loadExams();
@@ -141,45 +159,42 @@ export default function ExamManagementPage() {
     }
   };
 
-  const handleDeleteOne = (id: string) => {
+  const handleDeleteOne = async (id: string) => {
     try {
-      const success = AdminUjianService.deleteUjian(id);
-      if (success) {
-        loadExams();
-        selectedIds.delete(id);
-        setSelectedIds(new Set(selectedIds));
-        setAlert({
-          show: true,
-          type: 'success',
-          title: 'Berhasil',
-          message: 'Berhasil menghapus ujian'
-        });
-      } else {
-        setAlert({
-          show: true,
-          type: 'error',
-          title: 'Error!',
-          message: 'Ujian tidak ditemukan'
-        });
-      }
+      await adminService.deleteUjian(Number(id));
+      loadExams();
+      selectedIds.delete(id);
+      setSelectedIds(new Set(selectedIds));
+      setAlert({
+        show: true,
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Berhasil menghapus ujian'
+      });
     } catch (error) {
+      console.error('Failed to delete ujian:', error);
       setAlert({
         show: true,
         type: 'error',
         title: 'Error!',
-        message: 'Gagal menghapus ujian'
+        message: error instanceof ApiError ? error.message : 'Gagal menghapus ujian'
       });
     }
   };
 
-  const handleAddExam = (formData: ExamForm) => {
+  const handleAddExam = async (formData: ExamForm) => {
     try {
-      const newUjian = AdminUjianService.addUjian({
-        nama: formData.nama,
-        durasi: formData.durasi || 60,
+      // Calculate durasi from waktu_mulai and waktu_akhir
+      const start = new Date(formData.waktu_mulai_pengerjaan);
+      const end = new Date(formData.waktu_akhir_pengerjaan);
+      const durasi = Math.round((end.getTime() - start.getTime()) / (1000 * 60)); // in minutes
+
+      await adminService.createUjian({
+        nama_ujian: formData.nama_ujian,
+        durasi: durasi,
         deskripsi: formData.deskripsi,
-        status: 'belum_mulai',
-        soal: []
+        waktu_mulai_pengerjaan: formData.waktu_mulai_pengerjaan,
+        waktu_akhir_pengerjaan: formData.waktu_akhir_pengerjaan
       });
       
       loadExams();
@@ -191,11 +206,12 @@ export default function ExamManagementPage() {
         message: 'Berhasil menambah ujian'
       });
     } catch (error) {
+      console.error('Failed to create ujian:', error);
       setAlert({
         show: true,
         type: 'error',
         title: 'Error!',
-        message: 'Gagal menambah ujian'
+        message: error instanceof ApiError ? error.message : 'Gagal menambah ujian'
       });
     }
   };
@@ -432,18 +448,35 @@ function ExamTableRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  // Format dates for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('id-ID', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '-';
+    }
+  };
+
   return (
     <tr className={`border-b border-[#E4E4E4] ${selected ? 'bg-purple-50/50' : ''}`}>
       <td className="py-3.5 text-center">
-        <Checkbox checked={selected} onChange={onSelect} ariaLabel={`Select ${exam.nama}`} />
+        <Checkbox checked={selected} onChange={onSelect} ariaLabel={`Select ${exam.nama_ujian}`} />
       </td>
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{number}</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.nama}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.nama_ujian}</td>
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.durasi} menit</td>
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.deskripsi || '-'}</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">-</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">-</td>
-      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.soal.length}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{formatDate(exam.waktu_mulai_pengerjaan)}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{formatDate(exam.waktu_akhir_pengerjaan)}</td>
+      <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.jumlah_soal ?? 0}</td>
       <td className="px-4 py-3.5 text-center">
         <div className="flex items-center justify-center gap-2">
           <Pencil 
@@ -571,24 +604,20 @@ function ExamFormModal({
   onSubmit: (data: ExamForm) => void;
 }) {
   const [formData, setFormData] = React.useState<ExamForm>({
-    nama: '',
-    durasi: 0, // Hidden field, default value
+    nama_ujian: '',
     deskripsi: '',
-    mulai: '',
-    akhir: '',
-    jumlahSoal: 0 // Hidden field, default value
+    waktu_mulai_pengerjaan: '',
+    waktu_akhir_pengerjaan: ''
   });
 
   React.useEffect(() => {
     // Reset form when modal opens
     if (show) {
       setFormData({
-        nama: '',
-        durasi: 0,
+        nama_ujian: '',
         deskripsi: '',
-        mulai: '',
-        akhir: '',
-        jumlahSoal: 0
+        waktu_mulai_pengerjaan: '',
+        waktu_akhir_pengerjaan: ''
       });
     }
   }, [show]);
@@ -599,15 +628,20 @@ function ExamFormModal({
     e.preventDefault();
     
     // Basic validation
-    if (!formData.nama.trim()) {
+    if (!formData.nama_ujian.trim()) {
       alert('Nama ujian harus diisi');
       return;
     }
+    if (!formData.waktu_mulai_pengerjaan) {
+      alert('Waktu mulai pengerjaan harus diisi');
+      return;
+    }
+    if (!formData.waktu_akhir_pengerjaan) {
+      alert('Waktu akhir pengerjaan harus diisi');
+      return;
+    }
 
-    onSubmit({
-      ...formData,
-      durasi: formData.durasi || 60 // Default 60 menit
-    });
+    onSubmit(formData);
   };
 
   return (
@@ -644,10 +678,11 @@ function ExamFormModal({
             </label>
             <input
               type="text"
-              value={formData.nama}
-              onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+              value={formData.nama_ujian}
+              onChange={(e) => setFormData({ ...formData, nama_ujian: e.target.value })}
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
               placeholder="Ujian A"
+              required
             />
           </div>
 
@@ -659,9 +694,9 @@ function ExamFormModal({
             <textarea
               value={formData.deskripsi}
               onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
-              rows={4}
+              rows={3}
               className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
-              placeholder="Ujian ini adalah ujian chunnin"
+              placeholder="Deskripsi ujian (opsional)"
             />
           </div>
 
@@ -670,16 +705,13 @@ function ExamFormModal({
             <label className="mb-2 block font-inter text-sm font-semibold text-gray-700">
               Waktu Mulai Pengerjaan
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.mulai}
-                onChange={(e) => setFormData({ ...formData, mulai: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
-                placeholder="dd/mm/yy --:--"
-              />
-              <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            </div>
+            <input
+              type="datetime-local"
+              value={formData.waktu_mulai_pengerjaan}
+              onChange={(e) => setFormData({ ...formData, waktu_mulai_pengerjaan: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+              required
+            />
           </div>
 
           {/* Waktu Akhir Pengerjaan */}
@@ -687,16 +719,13 @@ function ExamFormModal({
             <label className="mb-2 block font-inter text-sm font-semibold text-gray-700">
               Waktu Akhir Pengerjaan
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.akhir}
-                onChange={(e) => setFormData({ ...formData, akhir: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
-                placeholder="dd/mm/yy --:--"
-              />
-              <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            </div>
+            <input
+              type="datetime-local"
+              value={formData.waktu_akhir_pengerjaan}
+              onChange={(e) => setFormData({ ...formData, waktu_akhir_pengerjaan: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-inter text-sm transition-colors focus:border-[#41366E] focus:outline-none focus:ring-1 focus:ring-[#41366E]/30"
+              required
+            />
           </div>
 
           {/* Buttons */}

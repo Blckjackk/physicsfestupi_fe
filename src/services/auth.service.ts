@@ -18,40 +18,45 @@ export const authService = {
   /**
    * Login peserta
    */
-  loginPeserta: async (credentials: LoginPesertaRequest): Promise<LoginPesertaResponse> => {
-    const response = await api.post<LoginPesertaResponse>(
+  loginPeserta: async (credentials: LoginPesertaRequest): Promise<any> => {
+    const response = await api.post<any>(
       '/peserta/login',
       credentials
     );
 
-    // Store token and user data
-    tokenManager.setToken(response.token);
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user', JSON.stringify(response.peserta));
-      localStorage.setItem('ujian', JSON.stringify(response.ujian));
+    // Laravel returns { success, message, data: { peserta, token } }
+    if (response.success && response.data) {
+      // Store token and user data
+      tokenManager.setToken(response.data.token);
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(response.data.peserta));
+      }
     }
 
-    return response;
+    return response.data; // Return just the data part
   },
 
   /**
    * Login admin
    */
-  loginAdmin: async (credentials: LoginAdminRequest): Promise<LoginAdminResponse> => {
-    const response = await api.post<LoginAdminResponse>(
+  loginAdmin: async (credentials: LoginAdminRequest): Promise<any> => {
+    const response = await api.post<any>(
       '/admin/login',
       credentials
     );
 
-    // Store token and admin data
-    tokenManager.setToken(response.token);
-    
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user', JSON.stringify(response.admin));
+    // Laravel returns { success, message, data: { admin, token } }
+    if (response.success && response.data) {
+      // Store token and admin data
+      tokenManager.setToken(response.data.token);
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(response.data.admin));
+      }
     }
 
-    return response;
+    return response.data; // Return just the data part
   },
 
   /**
@@ -59,6 +64,10 @@ export const authService = {
    */
   logout: (): void => {
     tokenManager.removeToken();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      localStorage.removeItem('ujian');
+    }
   },
 
   /**

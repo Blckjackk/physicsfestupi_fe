@@ -22,44 +22,72 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // Struct untuk Ujian
 interface Ujian {
-    id: number;
+    no: number;
+    ujian_id: number; // ID utama sepertinya ini, bukan 'id'
     nama_ujian: string;
-    // Tambahkan properti lain yang mungkin Anda butuhkan
-    // pendaftar: number; (Ini sepertinya perlu di-query terpisah di backend)
-    // sedang_mengerjakan: number;
-    // selesai: number;
+    deskripsi: string;
+    waktu_mulai_pengerjaan: string;
+    waktu_akhir_pengerjaan: string;
+    jumlah_pendaftar: number;
+    sedang_mengerjakan: number;
+    selesai: number;
+    created_at: string;
+}
+
+interface StatistikData {
+    peserta_ujian: number;
+    belum_login: number;
+    belum_mulai: number;
+    sedang_mengerjakan: number;
+    sudah_submit: number;
 }
 
 export default function DashboardPage() {
+    const [statistik, setStatistik] = React.useState<StatistikData | null>(null);
     const [ujianData, setUjianData] = React.useState<Ujian[]>([]); // Beri tahu TypeScript ini adalah array of Ujian
     const [isLoading, setIsLoading] = React.useState(true); // Mulai dengan loading
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        const fetchUjianData = async () => {
+        const fetchData = async () => {
             try {
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-                const response = await fetch(`${apiBaseUrl}/api/admin/ujian`); // Ganti dengan endpoint Anda jika berbeda
 
-                if (!response.ok) {
+                // Siapkan kedua request
+                const ujianPromise = fetch(`${apiBaseUrl}/admin/ujian`);
+                const dashboardPromise = fetch(`${apiBaseUrl}/admin/dashboard`);
+
+                // Jalankan keduanya secara bersamaan
+                const [ujianResponse, dashboardResponse] = await Promise.all([ujianPromise, dashboardPromise]);
+
+                if (!ujianResponse.ok || !dashboardResponse.ok) {
                     throw new Error('Gagal mengambil data dari server');
                 }
 
-                const result = await response.json();
+                const ujianResult = await ujianResponse.json();
+                const dashboardResult = await dashboardResponse.json();
 
-                if (result.success) {
-                    setUjianData(result.data); // Simpan data ke state
+                // Simpan data ujian
+                if (ujianResult.success) {
+                    setUjianData(ujianResult.data.ujian_dashboard || []);
                 } else {
-                    throw new Error(result.message || 'Gagal memuat data');
+                    throw new Error(ujianResult.message || 'Gagal memuat data ujian');
+                }
+
+                // Simpan data statistik
+                if (dashboardResult.success) {
+                    setStatistik(dashboardResult.data);
+                } else {
+                    throw new Error(dashboardResult.message || 'Gagal memuat data statistik');
                 }
 
             } catch (err: any) {
                 setError(err.message);
             } finally {
-                setIsLoading(false); // Hentikan loading
+                setIsLoading(false);
             }
         };
-        fetchUjianData();
+        fetchData();
     }, []); // Array dependensi kosong agar useEffect hanya berjalan sekali
 
     // Pengecekan loading sebelum generate tampilan
@@ -94,7 +122,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Komponen Statistik Peserta biar tinggal panggil euy */}
-                <StatistikPeserta />
+                <StatistikPeserta data={statistik} />
 
                 <hr className="my-8 border-black" />
 
@@ -150,12 +178,12 @@ export default function DashboardPage() {
                                         </TableRow>
                                     ) : (
                                         ujianData.map((ujian, index) => (
-                                            <TableRow key={ujian.id} className='border-[#E4E4E4]'>
+                                            <TableRow key={ujian.ujian_id} className='border-[#E4E4E4]'>
                                                 <TableCell>{index + 1}</TableCell>
                                                 <TableCell>{ujian.nama_ujian}</TableCell>
-                                                <TableCell>Belum Dapet Endpoint</TableCell>
-                                                <TableCell>Belum Dapet Endpoint</TableCell>
-                                                <TableCell>Belum Dapet Endpoint</TableCell>
+                                                <TableCell>{ujian.jumlah_pendaftar}</TableCell>
+                                                <TableCell>{ujian.sedang_mengerjakan}</TableCell>
+                                                <TableCell>{ujian.selesai}</TableCell>
                                             </TableRow>
                                         ))
                                     )}

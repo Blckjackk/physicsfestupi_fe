@@ -18,7 +18,8 @@ import { Trash } from "lucide-react"
 
 interface HapusPesertaProps {
     pesertaId: string;
-    onHapus: (id: string) => void;
+    // Ubah onHapus agar mengembalikan Promise<boolean>
+    onHapus: (id: string) => Promise<boolean>;
 }
 
 

@@ -45,33 +45,113 @@ import { EditPeserta } from "./edit/page";
 import { HapusPeserta } from "./hapus/page";
 import Image from "next/image";
 
-const data_peserta_initial = [
-    { id: '1', no: 1, username: 'asep123', password: 'tes123', ujian: 'Ujian A', status: 'Sedang Ujian' },
-    { id: '2', no: 2, username: 'inibudi', password: 'tes123', ujian: 'Ujian B', status: 'Sedang Ujian' },
-    { id: '3', no: 3, username: 'andiiii10', password: 'tes123', ujian: 'Ujian C', status: 'Selesai' },
-    { id: '4', no: 4, username: 'dimas09', password: 'tes123', ujian: 'Ujian A', status: 'Belum Mulai' },
-    { id: '5', no: 5, username: 'alfidingin', password: 'tes123', ujian: 'Ujian E', status: 'Sedang Ujian' },
-    { id: '6', no: 6, username: 'azampkez', password: 'tes123', ujian: 'Ujian A', status: 'Sedang Ujian' },
-    { id: '7', no: 7, username: 'muklisss', password: 'tes123', ujian: 'Ujian A', status: 'Sedang Ujian' },
-];
-
 type Checked = DropdownMenuCheckboxItemProps["checked"]
 
+// Definisikan tipe data untuk satu peserta
+export interface Peserta {
+    id: string;
+    no: number;
+    username: string;
+    password?: string; // Password mungkin tidak selalu ada dari API
+    ujian: string;
+    status: string;
+}
+
+export type PesertaUpdatePayload = {
+    username: string;
+    password?: string; // Dibuat opsional jika password tidak selalu diubah
+    ujian_id: number;
+};
+
+interface StatistikData {
+    peserta_ujian: number;
+    belum_login: number;
+    belum_mulai: number;
+    sedang_mengerjakan: number;
+    sudah_submit: number;
+}
+
 export default function DashboardPage() {
-    const [peserta, setPeserta] = React.useState(data_peserta_initial);
+    const [statistik, setStatistik] = React.useState<StatistikData | null>(null);
+    const [peserta, setPeserta] = React.useState<Peserta[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true); // State untuk loading
+    const [error, setError] = React.useState<string | null>(null); // State untuk error
+
+    React.useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+                // Siapkan kedua request
+                const pesertaPromise = fetch(`${apiBaseUrl}/admin/peserta`);
+                const dashboardPromise = fetch(`${apiBaseUrl}/admin/dashboard`);
+
+                // Jalankan keduanya secara bersamaan untuk efisiensi
+                const [pesertaResponse, dashboardResponse] = await Promise.all([pesertaPromise, dashboardPromise]);
+
+                if (!pesertaResponse.ok || !dashboardResponse.ok) {
+                    throw new Error('Gagal mengambil data dari server');
+                }
+
+                const pesertaResult = await pesertaResponse.json();
+                const dashboardResult = await dashboardResponse.json();
+
+                // Simpan data peserta
+                if (pesertaResult.success) {
+                    setPeserta(pesertaResult.data);
+                } else {
+                    throw new Error(pesertaResult.message || 'Gagal memuat data peserta');
+                }
+
+                // Simpan data statistik
+                if (dashboardResult.success) {
+                    setStatistik(dashboardResult.data);
+                } else {
+                    throw new Error(dashboardResult.message || 'Gagal memuat data statistik');
+                }
+
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []); // Array kosong berarti efek ini hanya berjalan sekali
+
     // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showStatusBar, setShowStatusBar] = React.useState<Checked>(true)
     const [showActivityBar, setShowActivityBar] = React.useState<Checked>(true)
     const [showPanel, setShowPanel] = React.useState<Checked>(true)
+    const [belumMulai, setBelumMulai] = React.useState<Checked>(true)
+
+    const activeStatuses: string[] = [];
+    if (showPanel) activeStatuses.push('Belum Login');
+    if (showStatusBar) activeStatuses.push('Sedang Ujian');
+    if (showActivityBar) activeStatuses.push('Sudah Submit');
+    if (belumMulai) activeStatuses.push('Belum Mulai');
+
+    // Gabungkan filter pencarian dan filter status
+    const filteredData = peserta.filter(item => {
+        // Cek apakah username cocok dengan pencarian (jika ada)
+        const matchesSearch = item.username.toLowerCase().includes(searchQuery.toLowerCase());
+
+        // Cek apakah status item ada di dalam daftar status yang aktif
+        const matchesStatus = activeStatuses.includes(item.status);
+
+        // Tampilkan baris hanya jika kedua kondisi terpenuhi
+        return matchesSearch && matchesStatus;
+    });
 
     // Ref buat checkbox di header (untuk state indeterminate)
     const headerCheckboxRef = useRef<HTMLButtonElement>(null);
 
     // Ngitung jumlah baris yg kepilih dan total baris dari data asli
     const numSelected = selectedRows.length;
-    const rowCount = peserta.length;
+    const rowCount = filteredData.length;
 
     // Efek buat ngatur state indeterminate pada checkbox header
     useEffect(() => {
@@ -85,7 +165,8 @@ export default function DashboardPage() {
     // Fungsi buat kasus klik "select all" di header table
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            const allRowIds = peserta.map((row) => row.id);
+            // Ambil ID hanya dari data yang sedang ditampilkan (sudah terfilter)
+            const allRowIds = filteredData.map((row) => row.id);
             setSelectedRows(allRowIds);
         } else {
             setSelectedRows([]);
@@ -101,28 +182,11 @@ export default function DashboardPage() {
         }
     };
 
-    const activeStatuses: string[] = [];
-    if (showPanel) activeStatuses.push('Belum Mulai');
-    if (showStatusBar) activeStatuses.push('Sedang Ujian');
-    if (showActivityBar) activeStatuses.push('Selesai');
-
-    // Gabungkan filter pencarian dan filter status
-    const filteredData = peserta.filter(item => {
-        // Cek apakah username cocok dengan pencarian (jika ada)
-        const matchesSearch = item.username.toLowerCase().includes(searchQuery.toLowerCase());
-
-        // Cek apakah status item ada di dalam daftar status yang aktif
-        const matchesStatus = activeStatuses.includes(item.status);
-
-        // Tampilkan baris hanya jika kedua kondisi terpenuhi
-        return matchesSearch && matchesStatus;
-    });
-
-    const handleTambahPeserta = async (formData: { username: string; password: string; ujian: string }) => {
+    const handleTambahPeserta = async (formData: { username: string; password: string; ujian_id: number }) => {
         try {
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL; // Pastikan ini ada di .env.local
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-            const response = await fetch(`${apiBaseUrl}/api/admin/peserta`, {
+            const response = await fetch(`${apiBaseUrl}/admin/peserta`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -134,53 +198,137 @@ export default function DashboardPage() {
             const result = await response.json();
 
             if (!response.ok) {
-                // Tangani error dari server
+                // Cek jika ada error validasi dari Laravel
+                if (response.status === 422) {
+                    // Ambil pesan error pertama
+                    const errors = result.errors;
+                    // Beri tahu TypeScript bahwa 'errors' adalah objek dengan key string dan value array of string
+                    const errorMessages = Object.values(errors as Record<string, string[]>);
+
+                    // Gunakan optional chaining (?.) untuk keamanan jika tidak ada error
+                    const firstError = errorMessages[0]?.[0];
+
+                    throw new Error(firstError || 'Data yang dimasukkan tidak valid.');
+                }
                 throw new Error(result.message || 'Gagal menambahkan peserta.');
             }
+
+            // console.log('Success Response Body:', result);
 
             // Jika berhasil, tambahkan data baru dari server ke state 'peserta'
             // Ini lebih baik daripada menambah data mentah dari form
             const newPesertaFromServer = result.data.peserta;
+            const assignedUjian = result.data.ujian_assigned;
 
             // Kita perlu membuat format data baru agar sesuai dengan state 'peserta'
-            const formattedNewPeserta = {
+            const formattedNewPeserta: Peserta = {
                 id: newPesertaFromServer.id.toString(),
-                no: peserta.length + 1,
+                no: peserta.length + 1, // Ini mungkin perlu disesuaikan jika ada paginasi
                 username: newPesertaFromServer.username,
-                password: '***', // Sebaiknya tidak menampilkan password asli
-                ujian: formData.ujian, // Ambil dari form karena API tidak mengembalikan ini
-                status: 'Belum Mulai', // Status awal
+                password: formData.password,
+                ujian: assignedUjian.nama_ujian,
+                status: 'Belum Login', // Sesuai dengan status awal dari API
             };
 
-            setPeserta(prevPeserta => [...prevPeserta, formattedNewPeserta]);
+            setPeserta(prevPeserta => [formattedNewPeserta, ...prevPeserta]);
+            return true;
 
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Gagal menambahkan peserta. Silakan coba lagi.');
+        } catch (error: any) {
+            // console.error('Error:', error);
+            // alert(`Gagal: ${error.message}`);
+            return false;
         }
     };
 
-    const handleEditPeserta = (pesertaId: string, dataUpdate: { username: string; password: string; ujian: string }) => {
-        setPeserta(prevPeserta =>
-            prevPeserta.map(p => {
-                // Jika ID peserta cocok dengan ID yang akan diupdate
-                if (p.id === pesertaId) {
-                    // Kembalikan data yang sudah digabung dengan data baru
-                    return { ...p, ...dataUpdate };
+    const handleEditPeserta = async (pesertaId: string, dataUpdate: PesertaUpdatePayload): Promise<boolean> => {
+        try {
+            // Hanya kirim password jika diisi
+            const payload = { ...dataUpdate };
+            if (!payload.password) {
+                delete payload.password;
+            }
+
+            console.log('Payload to be sent:', payload);
+
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            console.log(payload);
+            const response = await fetch(`${apiBaseUrl}/admin/peserta/${pesertaId}`, {
+                method: 'PUT', // Gunakan method PUT
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 422) {
+                    const errors = result.errors;
+                    const errorMessages = Object.values(errors as Record<string, string[]>);
+                    const firstError = errorMessages[0]?.[0];
+                    throw new Error(firstError || 'Data yang dimasukkan tidak valid.');
                 }
-                // Jika tidak cocok, kembalikan data lama tanpa perubahan
-                return p;
-            })
-        );
+                throw new Error(result.message || 'Gagal mengupdate peserta.');
+            }
+
+            // Ambil nama ujian dari response server
+            const updatedUjianNama = result.data?.ujian_assigned?.nama_ujian || 'Tidak diketahui';
+
+
+            // Jika sukses, update data di state frontend
+            setPeserta(prevPeserta =>
+                prevPeserta.map(p => {
+                    if (p.id === pesertaId) {
+                        return {
+                            ...p,
+                            username: dataUpdate.username,
+                            password: dataUpdate.password ? dataUpdate.password : p.password,
+                            ujian: updatedUjianNama, // ✅ sekarang benar
+                        };
+                    }
+                    return p;
+                })
+            );
+            return true; // Beri tahu child bahwa proses sukses
+
+        } catch (error: any) {
+            // console.error('Error:', error);
+            // alert(`Gagal: ${error.message}`);
+            return false; // Beri tahu child bahwa proses gagal
+        }
     };
 
     const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
-    const handleHapusPeserta = (pesertaId: string) => {
-        // Hapus data dari state peserta
-        setPeserta(prevPeserta => prevPeserta.filter(p => p.id !== pesertaId));
+    const handleHapusPeserta = async (pesertaId: string): Promise<boolean> => {
+        try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            const response = await fetch(`${apiBaseUrl}/admin/peserta/${pesertaId}`, {
+                method: 'DELETE', // Gunakan method DELETE
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
 
-        // Buka dialog sukses
-        setIsSuccessOpen(true);
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal menghapus peserta.');
+            }
+
+            // Jika API sukses menghapus, baru update state di frontend
+            setPeserta(prevPeserta => prevPeserta.filter(p => p.id !== pesertaId));
+
+            setIsSuccessOpen(true); // Buka dialog sukses
+
+            return true;
+
+        } catch (error: any) {
+            console.error('Error:', error);
+            alert(`Gagal: ${error.message}`);
+            return false;
+        }
     };
 
     const [isConfirmHapusPilihOpen, setIsConfirmHapusPilihOpen] = React.useState(false);
@@ -195,7 +343,7 @@ export default function DashboardPage() {
         setSelectedRows([]);
 
         // Buka dialog sukses
-        setIsSuccessHapusPilihOpen(true); // <-- TAMBAHKAN INI
+        setIsSuccessHapusPilihOpen(true);
     };
 
     return (
@@ -209,7 +357,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Komponen Statistik Peserta biar tinggal panggil euy */}
-                <StatistikPeserta />
+                <StatistikPeserta data={statistik}/>
 
                 <div className='flex justify-end'>
                     <TambahPeserta onTambah={handleTambahPeserta} />
@@ -246,7 +394,13 @@ export default function DashboardPage() {
                                             checked={showPanel}
                                             onCheckedChange={setShowPanel}
                                         >
-                                            Belum Ujian
+                                            Belum Login
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            checked={belumMulai}
+                                            onCheckedChange={setBelumMulai}
+                                        >
+                                            Belum Mulai
                                         </DropdownMenuCheckboxItem>
                                         <DropdownMenuCheckboxItem
                                             checked={showStatusBar}
@@ -258,16 +412,16 @@ export default function DashboardPage() {
                                             checked={showActivityBar}
                                             onCheckedChange={setShowActivityBar}
                                         >
-                                            Selesai
+                                            Sudah Submit
                                         </DropdownMenuCheckboxItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
                             {/* <div className="w-3/12 justify-end flex">
-                                <Button className='bg-[#CD1F1F] rounded-[10px] text-lg text-base font-heading font-medium'>
-                                    <span>Hapus Pilih ({numSelected})</span>
-                                </Button>
-                            </div> */}
+                                    <Button className='bg-[#CD1F1F] rounded-[10px] text-lg text-base font-heading font-medium'>
+                                        <span>Hapus Pilih ({numSelected})</span>
+                                    </Button>
+                                </div> */}
                             <div className="w-3/12 justify-end flex">
                                 <Dialog open={isConfirmHapusPilihOpen} onOpenChange={setIsConfirmHapusPilihOpen}>
                                     <DialogTrigger asChild>
@@ -336,28 +490,26 @@ export default function DashboardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredData.map((row) => (
-                                        <TableRow key={row.id} className='border-[#E4E4E4]'>
-                                            <TableCell className='text-center'>
-                                                <Checkbox
-                                                    onCheckedChange={(checked) => handleSelectRow(row.id, checked as boolean)}
-                                                    checked={selectedRows.includes(row.id)}
-                                                />
-                                            </TableCell>
-                                            <TableCell>{row.no}</TableCell>
-                                            <TableCell>{row.username}</TableCell>
-                                            <TableCell>{row.password}</TableCell>
-                                            <TableCell>{row.ujian}</TableCell>
-                                            <TableCell>{row.status}</TableCell>
-                                            <TableCell className='flex items-center justify-center gap-2'>
-                                                <EditPeserta peserta={row} onEdit={handleEditPeserta} />
-                                                <HapusPeserta
-                                                    pesertaId={row.id} // Kirim ID dari baris ini
-                                                    onHapus={handleHapusPeserta} // Kirim fungsi untuk menghapus
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {isLoading ? (
+                                        <TableRow><TableCell colSpan={7} className="h-24 text-center">Memuat data...</TableCell></TableRow>
+                                    ) : error ? (
+                                        <TableRow><TableCell colSpan={7} className="h-24 text-center text-red-500">Error: {error}</TableCell></TableRow>
+                                    ) : (
+                                        filteredData.map((row) => (
+                                            <TableRow key={row.id} className='border-[#E4E4E4]'>
+                                                <TableCell><Checkbox onCheckedChange={(checked) => handleSelectRow(row.id, checked as boolean)} checked={selectedRows.includes(row.id)} /></TableCell>
+                                                <TableCell>{row.no}</TableCell>
+                                                <TableCell>{row.username}</TableCell>
+                                                <TableCell>{row.password}</TableCell>
+                                                <TableCell>{row.ujian}</TableCell>
+                                                <TableCell>{row.status}</TableCell>
+                                                <TableCell className="flex justify-center gap-2">
+                                                    <EditPeserta peserta={row} onEdit={handleEditPeserta} />
+                                                    <HapusPeserta pesertaId={row.id} onHapus={handleHapusPeserta} />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>

@@ -27,47 +27,88 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
+interface UjianOption {
+  ujian_id: number;
+  nama_ujian: string;
+}
+
 interface TambahPesertaProps {
-  onTambah: (data: { username: string; password: string; ujian: string }) => void;
+  onTambah: (data: { username: string; password: string; ujian_id: number; }) => Promise<boolean>;
 }
 
 export function TambahPeserta({ onTambah }: TambahPesertaProps) {
   // 1. State untuk mengontrol kedua dialog
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
+  const [isFailOpen, setIsFailOpen] = React.useState(false);
 
+  // State untuk data dari form
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [position, setPosition] = React.useState("Pilih Tipe Ujian");
+  const [selectedUjianId, setSelectedUjianId] = React.useState<number | null>(null);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  // State untuk menampung daftar ujian dari API
+  const [ujianOptions, setUjianOptions] = React.useState<UjianOption[]>([]);
+  const [isLoadingUjian, setIsLoadingUjian] = React.useState(false);
+
+  // Ambil daftar ujian saat dialog pertama kali akan dibuka
+  React.useEffect(() => {
+    if (isFormOpen) {
+      setIsLoadingUjian(true);
+      const fetchUjianOptions = async () => {
+        try {
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+          const response = await fetch(`${apiBaseUrl}/admin/ujian`); // Asumsi endpoint ini ada
+          const result = await response.json();
+          if (result.success) {
+            setUjianOptions(result.data.ujian_dashboard || []);
+          }
+        } catch (error) {
+          console.error("Gagal mengambil daftar ujian:", error);
+        } finally {
+          setIsLoadingUjian(false);
+        }
+      };
+      fetchUjianOptions();
+    }
+  }, [isFormOpen]); // Jalankan setiap kali dialog dibuka
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // --- AREA VALIDASI INPUT ---
-    if (!username.trim()) {
-      alert("Username tidak boleh kosong.");
-      return; // Validasi username
-    }
-    if (password.length < 6) {
-      alert("Password minimal harus 6 karakter.");
-      return; // Validasi panjang password
-    }
-    if (position === "Pilih Tipe Ujian") {
-      alert("Silakan pilih tipe ujian terlebih dahulu.");
-      return; // Validasi tipe ujian
+    if (!username.trim() || password.length < 6 || !selectedUjianId) {
+      if (!username.trim()) {
+        alert("Username tidak boleh kosong.");
+      } else if (password.length < 6) {
+        alert("Password harus terdiri dari minimal 6 karakter.");
+      } else if (!selectedUjianId) {
+        alert("Harap pilih tipe ujian.");
+      }
+      return;
     }
 
-    const formData = { username, password, ujian: position };
-    onTambah(formData);
-    // console.log("Data yang akan dikirim:", formData);
+    const formData = {
+      username,
+      password,
+      ujian_id: selectedUjianId
+    };
 
-    setIsFormOpen(false);
-    setIsSuccessOpen(true);
-
-    // Reset form setelah submit
-    setUsername("");
-    setPassword("");
-    setPosition("Pilih Tipe Ujian");
+    const success = await onTambah(formData);
+    // Cek hasilnya
+    if (success) {
+      // Jika berhasil, tampilkan dialog sukses
+      setIsFormOpen(false);
+      setIsSuccessOpen(true);
+      // Reset form
+      setUsername("");
+      setPassword("");
+      setSelectedUjianId(null);
+    } else {
+      // Jika gagal, tampilkan dialog gagal
+      // Biarkan form tetap terbuka agar pengguna bisa memperbaiki
+      setIsFormOpen(false); // Tutup form tambah
+      setIsFailOpen(true); // Buka dialog gagal
+    }
   };
 
   return (
@@ -105,15 +146,24 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
                 <Label className="text-black" htmlFor="ujian-1">Ujian</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="w-full justify-start" variant="outline">{position}</Button>
+                    <Button className="w-full justify-start" variant="outline" disabled={isLoadingUjian}>
+                      {isLoadingUjian
+                        ? "Memuat ujian..."
+                        : selectedUjianId
+                          // 2. Perbaiki find agar menggunakan ujian_id
+                          ? ujianOptions.find(u => u.ujian_id === selectedUjianId)?.nama_ujian
+                          : "Pilih Tipe Ujian"}
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 text-black bg-white">
                     <DropdownMenuLabel>Pilih Tipe</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuRadioGroup value={position} onValueChange={setPosition}>
-                      <DropdownMenuRadioItem value="Ujian A">Ujian A</DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="Ujian B">Ujian B</DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem value="Ujian C">Ujian C</DropdownMenuRadioItem>
+                    <DropdownMenuRadioGroup value={selectedUjianId?.toString()} onValueChange={(value) => setSelectedUjianId(Number(value))}>
+                      {ujianOptions.map((ujian) => (
+                        <DropdownMenuRadioItem key={ujian.ujian_id} value={ujian.ujian_id.toString()}>
+                          {ujian.nama_ujian}
+                        </DropdownMenuRadioItem>
+                      ))}
                     </DropdownMenuRadioGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -153,6 +203,33 @@ export function TambahPeserta({ onTambah }: TambahPesertaProps) {
           <DialogFooter className="grid grid-cols-1 gap-4">
             <DialogClose asChild>
               <Button className="w-full text-white bg-[#749221]" variant="outline">
+                Tutup
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog >
+
+      <Dialog open={isFailOpen} onOpenChange={setIsFailOpen}>
+        <DialogContent className="font-heading bg-white sm:max-w-[425px]">
+          <DialogHeader className="flex items-center justify-center">
+            <DialogTitle className="text-black text-xl font-semibold text-center">
+              <Image
+                src="/images/gagal.png"
+                alt="Logo Gagal"
+                width={80}
+                height={80}
+                priority
+              />
+              <div className="mt-2">Error!</div>
+            </DialogTitle>
+            <DialogDescription className="text-base text-black font-medium">
+              Gagal Tambah Peserta
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="grid grid-cols-1 gap-4">
+            <DialogClose asChild>
+              <Button className="w-full text-white bg-[#CD1F1F]" variant="outline">
                 Tutup
               </Button>
             </DialogClose>

@@ -27,21 +27,26 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Pencil } from "lucide-react"
+import type { Peserta, PesertaUpdatePayload } from "../page";
 
 interface EditPesertaProps {
-    peserta: {
-        id: string;
-        username: string;
-        password: string;
-        ujian: string;
-    };
-    onEdit: (id: string, data: { username: string; password: string; ujian: string }) => void;
+    peserta: Peserta;
+    onEdit: (id: string, data: PesertaUpdatePayload) => Promise<boolean>;
+}
+
+interface UjianOption {
+    ujian_id: number;
+    nama_ujian: string;
 }
 
 export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
     // 1. State untuk mengontrol kedua dialog
     const [isFormOpen, setIsFormOpen] = React.useState(false);
     const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
+    const [isFailOpen, setIsFailOpen] = React.useState(false);
+
+    const [ujianOptions, setUjianOptions] = React.useState<UjianOption[]>([]);
+    const [isLoadingUjian, setIsLoadingUjian] = React.useState(false);
 
     const [username, setUsername] = React.useState("");
     const [password, setPassword] = React.useState("");
@@ -50,12 +55,30 @@ export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
     React.useEffect(() => {
         if (isFormOpen) {
             setUsername(peserta.username);
-            setPassword(peserta.password);
+            setPassword(peserta.password || ""); // Gunakan string kosong jika password undefined
             setPosition(peserta.ujian);
+
+            // Logika baru untuk fetch daftar ujian
+            setIsLoadingUjian(true);
+            const fetchUjianOptions = async () => {
+                try {
+                    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+                    const response = await fetch(`${apiBaseUrl}/admin/ujian`);
+                    const result = await response.json();
+                    if (result.success) {
+                        setUjianOptions(result.data.ujian_dashboard || []);
+                    }
+                } catch (error) {
+                    console.error("Gagal mengambil daftar ujian:", error);
+                } finally {
+                    setIsLoadingUjian(false);
+                }
+            };
+            fetchUjianOptions();
         }
     }, [isFormOpen, peserta]);
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         // --- AREA VALIDASI INPUT ---
@@ -63,21 +86,45 @@ export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
             alert("Username tidak boleh kosong.");
             return; // Validasi username
         }
-        if (password.length < 6) {
-            alert("Password minimal harus 6 karakter.");
-            return; // Validasi panjang password
-        }
-        if (position === "Pilih Tipe Ujian") {
+        else if (position === "Pilih Tipe Ujian") {
             alert("Silakan pilih tipe ujian terlebih dahulu.");
             return; // Validasi tipe ujian
         }
 
-        const formData = { username, password, ujian: position };
-        // console.log("Data yang akan dikirim:", formData);
-        onEdit(peserta.id, formData);
+        // Cari ujian_id dari nama ujian yang dipilih
+        const selectedUjian = ujianOptions.find(
+            (ujian) => ujian.nama_ujian === position
+        );
 
-        setIsFormOpen(false);
-        setIsSuccessOpen(true);
+        if (!selectedUjian) {
+            alert("Ujian yang dipilih tidak valid.");
+            return;
+        }
+
+        const formData: PesertaUpdatePayload = {
+            username,
+            ujian_id: selectedUjian.ujian_id, // kirim id ujian, bukan nama
+        };
+
+        if (password) {
+            if (password.length < 6) {
+                alert("Password minimal harus 6 karakter.");
+                return;
+            }
+            formData.password = password;
+        }
+
+        const success = await onEdit(peserta.id, formData);
+        // console.log("Data yang akan dikirim:", formData);
+
+
+        if (success) {
+            setIsFormOpen(false);
+            setIsSuccessOpen(true);
+        } else {
+            // Jika gagal, jangan tutup form utama, tapi tampilkan dialog gagal
+            setIsFailOpen(true);
+        }
     };
 
     return (
@@ -107,15 +154,17 @@ export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
                                 <Label className="text-black" htmlFor="ujian-1">Ujian</Label>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button className="w-full justify-start" variant="outline">{position}</Button>
+                                        <Button className="w-full justify-start" variant="outline" disabled={isLoadingUjian}>{isLoadingUjian ? "Memuat ujian..." : position}</Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent className="w-56 text-black bg-white">
                                         <DropdownMenuLabel>Pilih Tipe</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuRadioGroup value={position} onValueChange={setPosition}>
-                                            <DropdownMenuRadioItem value="Ujian A">Ujian A</DropdownMenuRadioItem>
-                                            <DropdownMenuRadioItem value="Ujian B">Ujian B</DropdownMenuRadioItem>
-                                            <DropdownMenuRadioItem value="Ujian C">Ujian C</DropdownMenuRadioItem>
+                                            {ujianOptions.map((ujian) => (
+                                                <DropdownMenuRadioItem key={ujian.ujian_id} value={ujian.nama_ujian}>
+                                                    {ujian.nama_ujian}
+                                                </DropdownMenuRadioItem>
+                                            ))}
                                         </DropdownMenuRadioGroup>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
@@ -155,6 +204,32 @@ export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
                     <DialogFooter className="grid grid-cols-1 gap-4">
                         <DialogClose asChild>
                             <Button className="w-full text-white bg-[#749221]" variant="outline">
+                                Tutup
+                            </Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog >
+            <Dialog open={isFailOpen} onOpenChange={setIsFailOpen}>
+                <DialogContent className="font-heading bg-white sm:max-w-[425px]">
+                    <DialogHeader className="flex items-center justify-center">
+                        <DialogTitle className="text-black text-xl font-semibold text-center">
+                            <Image
+                                src="/images/gagal.png"
+                                alt="Logo Gagal"
+                                width={80}
+                                height={80}
+                                priority
+                            />
+                            <div className="mt-2">Error!</div>
+                        </DialogTitle>
+                        <DialogDescription className="text-base text-black font-medium">
+                            Gagal Edit Peserta
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="grid grid-cols-1 gap-4">
+                        <DialogClose asChild>
+                            <Button onClick={() => setIsFailOpen(false)} className="w-full text-white bg-[#749221]" variant="outline">
                                 Tutup
                             </Button>
                         </DialogClose>
