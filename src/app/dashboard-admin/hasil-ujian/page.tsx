@@ -82,7 +82,7 @@ export default function HasilUjian() {
         const fetchHasilUjian = async () => {
             try {
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-                const response = await fetch(`${apiBaseUrl}/api/admin/jawaban/peserta`);
+                const response = await fetch(`${apiBaseUrl}/admin/jawaban/peserta`);
 
                 if (!response.ok) {
                     throw new Error('Gagal mengambil data hasil ujian');

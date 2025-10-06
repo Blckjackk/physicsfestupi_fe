@@ -49,7 +49,7 @@ export default function DetailHasilUjianPage({ params }: { params: Promise<{ pes
         const fetchDetail = async () => {
             try {
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-                const response = await fetch(`${apiBaseUrl}/api/admin/jawaban/peserta/${peserta_id}/ujian/${ujian_id}`);
+                const response = await fetch(`${apiBaseUrl}/admin/jawaban/peserta/${peserta_id}/ujian/${ujian_id}`);
 
                 if (!response.ok) {
                     throw new Error('Gagal mengambil detail jawaban dari server.');

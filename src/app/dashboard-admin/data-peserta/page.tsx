@@ -83,8 +83,8 @@ export default function DashboardPage() {
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
                 // Siapkan kedua request
-                const pesertaPromise = fetch(`${apiBaseUrl}/api/admin/peserta`);
-                const dashboardPromise = fetch(`${apiBaseUrl}/api/admin/dashboard`);
+                const pesertaPromise = fetch(`${apiBaseUrl}/admin/peserta`);
+                const dashboardPromise = fetch(`${apiBaseUrl}/admin/dashboard`);
 
                 // Jalankan keduanya secara bersamaan untuk efisiensi
                 const [pesertaResponse, dashboardResponse] = await Promise.all([pesertaPromise, dashboardPromise]);
@@ -186,7 +186,7 @@ export default function DashboardPage() {
         try {
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-            const response = await fetch(`${apiBaseUrl}/api/admin/peserta`, {
+            const response = await fetch(`${apiBaseUrl}/admin/peserta`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -252,7 +252,7 @@ export default function DashboardPage() {
 
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
             console.log(payload);
-            const response = await fetch(`${apiBaseUrl}/api/admin/peserta/${pesertaId}`, {
+            const response = await fetch(`${apiBaseUrl}/admin/peserta/${pesertaId}`, {
                 method: 'PUT', // Gunakan method PUT
                 headers: {
                     'Content-Type': 'application/json',
@@ -304,7 +304,7 @@ export default function DashboardPage() {
     const handleHapusPeserta = async (pesertaId: string): Promise<boolean> => {
         try {
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-            const response = await fetch(`${apiBaseUrl}/api/admin/peserta/${pesertaId}`, {
+            const response = await fetch(`${apiBaseUrl}/admin/peserta/${pesertaId}`, {
                 method: 'DELETE', // Gunakan method DELETE
                 headers: {
                     'Accept': 'application/json',

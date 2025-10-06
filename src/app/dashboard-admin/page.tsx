@@ -54,8 +54,8 @@ export default function DashboardPage() {
                 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
                 // Siapkan kedua request
-                const ujianPromise = fetch(`${apiBaseUrl}/api/admin/ujian`);
-                const dashboardPromise = fetch(`${apiBaseUrl}/api/admin/dashboard`);
+                const ujianPromise = fetch(`${apiBaseUrl}/admin/ujian`);
+                const dashboardPromise = fetch(`${apiBaseUrl}/admin/dashboard`);
 
                 // Jalankan keduanya secara bersamaan
                 const [ujianResponse, dashboardResponse] = await Promise.all([ujianPromise, dashboardPromise]);
