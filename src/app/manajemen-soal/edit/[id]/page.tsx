@@ -13,6 +13,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
 import FormattedText from '@/components/FormattedText';
+import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 import { adminService, type Ujian, type Soal } from '@/services/admin.service';
 import { ArrowLeft, Pencil, Trash, Plus } from 'lucide-react';
 
@@ -40,6 +41,15 @@ export default function EditExamPage() {
   // Check for tab parameter from URL
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<'info' | 'soal'>(tabParam === 'soal' ? 'soal' : 'info');
+  
+  // Alert modal states
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: 'info' as AlertType,
+    title: '',
+    message: '',
+    confirmAction: null as (() => void) | null,
+  });
 
   // Load ujian data on mount
   useEffect(() => {
@@ -103,11 +113,30 @@ export default function EditExamPage() {
         durasi: formData.durasi
       });
 
-      alert('Ujian berhasil diupdate');
-      router.push('/manajemen-soal');
+      setAlertConfig({
+        type: 'success',
+        title: 'Berhasil!',
+        message: 'Ujian berhasil diupdate!',
+        confirmAction: null,
+      });
+      setShowAlert(true);
     } catch (error) {
       console.error('Failed to update ujian:', error);
-      alert('Gagal mengupdate ujian');
+      setAlertConfig({
+        type: 'error',
+        title: 'Error!',
+        message: 'Gagal mengupdate ujian. Silakan coba lagi.',
+        confirmAction: null,
+      });
+      setShowAlert(true);
+    }
+  };
+
+  const closeAlert = () => {
+    setShowAlert(false);
+    // If it's a success alert for ujian update, navigate back
+    if (alertConfig.type === 'success' && alertConfig.title === 'Berhasil!' && alertConfig.message.includes('Ujian berhasil diupdate')) {
+      router.push('/manajemen-soal');
     }
   };
 
@@ -270,7 +299,12 @@ export default function EditExamPage() {
 
             {/* Soal Ujian Tab */}
             {activeTab === 'soal' && (
-              <SoalUjianTab examId={examId as string} examName={formData.nama} />
+              <SoalUjianTab 
+                examId={examId as string} 
+                examName={formData.nama}
+                onShowAlert={setAlertConfig}
+                onSetShowAlert={setShowAlert}
+              />
             )}
           </div>
 
@@ -287,12 +321,40 @@ export default function EditExamPage() {
           )}
         </div>
       </main>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={closeAlert}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        primaryButtonText={alertConfig.type === 'warning' && alertConfig.confirmAction ? 'Hapus' : 'Tutup'}
+        secondaryButtonText={alertConfig.type === 'warning' && alertConfig.confirmAction ? 'Batal' : undefined}
+        onPrimaryClick={() => {
+          if (alertConfig.type === 'warning' && alertConfig.confirmAction) {
+            alertConfig.confirmAction();
+          }
+          closeAlert();
+        }}
+        onSecondaryClick={closeAlert}
+      />
     </div>
   );
 }
 
 // ============ SOAL UJIAN TAB COMPONENT ============
-function SoalUjianTab({ examId, examName }: { examId: string; examName: string }) {
+function SoalUjianTab({ 
+  examId, 
+  examName,
+  onShowAlert,
+  onSetShowAlert
+}: { 
+  examId: string; 
+  examName: string;
+  onShowAlert: (config: any) => void;
+  onSetShowAlert: (show: boolean) => void;
+}) {
   const router = useRouter();
   const [questions, setQuestions] = useState<Soal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -315,16 +377,36 @@ function SoalUjianTab({ examId, examName }: { examId: string; examName: string }
     }
   };
 
-  const handleDeleteQuestion = async (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus soal ini?')) {
-      try {
-        await adminService.deleteSoal(id);
-        alert('Soal berhasil dihapus');
-        loadQuestions(); // Refresh list
-      } catch (error) {
-        console.error('Failed to delete soal:', error);
-        alert('Gagal menghapus soal');
-      }
+  const handleDeleteQuestion = (id: number) => {
+    onShowAlert({
+      type: 'warning' as AlertType,
+      title: 'Konfirmasi Hapus',
+      message: 'Apakah Anda yakin ingin menghapus soal ini? Tindakan ini tidak dapat dibatalkan.',
+      confirmAction: () => confirmDeleteQuestion(id),
+    });
+    onSetShowAlert(true);
+  };
+
+  const confirmDeleteQuestion = async (id: number) => {
+    try {
+      await adminService.deleteSoal(id);
+      onShowAlert({
+        type: 'success' as AlertType,
+        title: 'Berhasil!',
+        message: 'Soal berhasil dihapus!',
+        confirmAction: null,
+      });
+      onSetShowAlert(true);
+      loadQuestions(); // Refresh list
+    } catch (error) {
+      console.error('Failed to delete soal:', error);
+      onShowAlert({
+        type: 'error' as AlertType,
+        title: 'Error!',
+        message: 'Gagal menghapus soal. Silakan coba lagi.',
+        confirmAction: null,
+      });
+      onSetShowAlert(true);
     }
   };
 

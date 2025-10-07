@@ -18,6 +18,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
+import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 import { adminService, type Ujian } from '@/services/admin.service';
 import { ApiError } from '@/lib/api';
 import { 
@@ -62,6 +63,15 @@ export default function ExamManagementPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ show: false, type: 'success', title: '', message: '' });
+  
+  // Alert modal states for single delete confirmation
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: 'info' as AlertType,
+    title: '',
+    message: '',
+    confirmAction: null as (() => void) | null,
+  });
 
   // Load ujian data on mount
   useEffect(() => {
@@ -159,26 +169,38 @@ export default function ExamManagementPage() {
     }
   };
 
-  const handleDeleteOne = async (id: string) => {
+  const handleDeleteOne = (id: string) => {
+    setAlertConfig({
+      type: 'warning' as AlertType,
+      title: 'Konfirmasi Hapus',
+      message: 'Apakah Anda yakin ingin menghapus ujian ini? Semua soal dalam ujian ini juga akan dihapus. Tindakan ini tidak dapat dibatalkan.',
+      confirmAction: () => confirmDeleteOne(id),
+    });
+    setShowAlert(true);
+  };
+
+  const confirmDeleteOne = async (id: string) => {
     try {
       await adminService.deleteUjian(Number(id));
       loadExams();
       selectedIds.delete(id);
       setSelectedIds(new Set(selectedIds));
-      setAlert({
-        show: true,
-        type: 'success',
-        title: 'Berhasil',
-        message: 'Berhasil menghapus ujian'
+      setAlertConfig({
+        type: 'success' as AlertType,
+        title: 'Berhasil!',
+        message: 'Ujian berhasil dihapus!',
+        confirmAction: null,
       });
+      setShowAlert(true);
     } catch (error) {
       console.error('Failed to delete ujian:', error);
-      setAlert({
-        show: true,
-        type: 'error',
+      setAlertConfig({
+        type: 'error' as AlertType,
         title: 'Error!',
-        message: error instanceof ApiError ? error.message : 'Gagal menghapus ujian'
+        message: error instanceof ApiError ? error.message : 'Gagal menghapus ujian',
+        confirmAction: null,
       });
+      setShowAlert(true);
     }
   };
 
@@ -219,6 +241,10 @@ export default function ExamManagementPage() {
   const handleOpenEditPage = (exam: Ujian) => {
     // Redirect to edit page
     router.push(`/manajemen-soal/edit/${exam.id}`);
+  };
+
+  const closeAlert = () => {
+    setShowAlert(false);
   };
 
   const isAllSelected = paginatedExams.length > 0 && selectedIds.size === paginatedExams.length;
@@ -338,6 +364,24 @@ export default function ExamManagementPage() {
         title={alert.title}
         message={alert.message}
         onClose={() => setAlert({ ...alert, show: false })}
+      />
+
+      {/* Alert Modal for Delete Confirmation */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={closeAlert}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        primaryButtonText={alertConfig.type === 'warning' && alertConfig.confirmAction ? 'Hapus' : 'Tutup'}
+        secondaryButtonText={alertConfig.type === 'warning' && alertConfig.confirmAction ? 'Batal' : undefined}
+        onPrimaryClick={() => {
+          if (alertConfig.type === 'warning' && alertConfig.confirmAction) {
+            alertConfig.confirmAction();
+          }
+          closeAlert();
+        }}
+        onSecondaryClick={closeAlert}
       />
     </div>
   );

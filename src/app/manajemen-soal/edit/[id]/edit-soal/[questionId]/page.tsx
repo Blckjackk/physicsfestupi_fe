@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, Image as ImageIcon, X } from 'lucide-react';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
 import RichTextInput from '@/components/RichTextInput';
+import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 import { adminService, type Soal } from '@/services/admin.service';
 
 export default function EditSoalPage() {
@@ -37,6 +38,14 @@ export default function EditSoalPage() {
   const [gambarEPreview, setGambarEPreview] = useState<string | null>(null);
   const [jawabanBenar, setJawabanBenar] = useState('A');
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Alert modal states
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: 'info' as AlertType,
+    title: '',
+    message: '',
+  });
 
   // Helper function to insert formatting tags into textarea
   const insertFormatting = (currentValue: string, setValue: (val: string) => void, before: string, after: string) => {
@@ -254,16 +263,33 @@ export default function EditSoalPage() {
         jawaban_benar: jawabanBenar.toUpperCase(), // Backend expects uppercase
       });
 
-      alert('Soal berhasil diupdate');
-      router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+      setAlertConfig({
+        type: 'success',
+        title: 'Berhasil!',
+        message: 'Soal berhasil diupdate!'
+      });
+      setShowAlert(true);
     } catch (error) {
       console.error('Error updating soal:', error);
-      alert('Gagal mengupdate soal');
+      setAlertConfig({
+        type: 'error',
+        title: 'Error!',
+        message: 'Gagal mengupdate soal. Silakan coba lagi.'
+      });
+      setShowAlert(true);
     }
   };
 
   const handleBack = () => {
     router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+  };
+
+  const closeAlert = () => {
+    setShowAlert(false);
+    // If it's a success alert, navigate back
+    if (alertConfig.type === 'success') {
+      router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+    }
   };
 
   const handleFileChange = (
@@ -397,8 +423,8 @@ export default function EditSoalPage() {
                 </div>
               </div>
 
-              {/* Soal Gambar (Optional) */}
-              <div>
+              {/* Soal Gambar (Optional) - Hide when Teks */}
+              <div style={{ display: tipeSoal === 'Teks' ? 'none' : 'block' }}>
                 <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
                   Soal Gambar (Opsional)
                 </label>
@@ -527,8 +553,8 @@ export default function EditSoalPage() {
                       </div>
                     </div>
 
-                    {/* Gambar (Optional) */}
-                    <div>
+                    {/* Gambar (Optional) - Hide when Teks */}
+                    <div style={{ display: tipeSoal === 'Teks' ? 'none' : 'block' }}>
                       <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
                         Gambar {option.label} (Opsional)
                       </label>
@@ -636,6 +662,17 @@ export default function EditSoalPage() {
           </form>
         </div>
       </main>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={closeAlert}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        primaryButtonText="Tutup"
+        onPrimaryClick={closeAlert}
+      />
     </div>
   );
 }

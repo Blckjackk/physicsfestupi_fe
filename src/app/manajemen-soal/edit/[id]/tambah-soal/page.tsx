@@ -325,8 +325,8 @@ export default function TambahSoalPage() {
                   </div>
                 </div>
 
-                {/* Soal Gambar (Optional) - File Upload with Preview */}
-                <div>
+                {/* Soal Gambar (Optional) - File Upload with Preview - Hide when Teks */}
+                <div style={{ display: tipeSoal === 'Teks' ? 'none' : 'block' }}>
                   <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
                     Gambar Soal (Opsional)
                   </label>
@@ -446,11 +446,13 @@ export default function TambahSoalPage() {
                           placeholder="Masukkan jawaban..."
                         />
                       </div>
-                    </div>                      {/* Gambar (Optional) - File Upload with Preview */}
-                      <div>
-                        <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
-                          Gambar {option.label} (Opsional)
-                        </label>
+                    </div>
+
+                    {/* Gambar (Optional) - File Upload with Preview - Hide when Teks */}
+                    <div style={{ display: tipeSoal === 'Teks' ? 'none' : 'block' }}>
+                      <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                        Gambar {option.label} (Opsional)
+                      </label>
                         <div className="relative">
                           <input
                             type="file"
