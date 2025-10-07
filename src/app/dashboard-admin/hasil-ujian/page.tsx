@@ -243,49 +243,14 @@ export default function HasilUjian() {
     };
 
     const handleExportExcel = () => {
-        // 1. Siapkan nama kolom untuk header di Excel
-        const headers = [
-            "No.",
-            "Username",
-            "Nama Ujian",
-            "Waktu Mulai",
-            "Waktu Selesai",
-            "Jumlah Soal",
-            "Soal Terjawab"
-        ];
+        // 1. Dapatkan URL dasar API dari environment variable
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-        // 2. Format ulang data `sortedAndFilteredData` agar sesuai dengan header
-        const dataToExport = sortedAndFilteredData.map(row => ({
-            "No.": row.no,
-            "Username": row.username,
-            "Nama Ujian": row.nama_ujian,
-            "Waktu Mulai": row.mulai,
-            "Waktu Selesai": row.selesai,
-            "Jumlah Soal": row.jumlah_soal,
-            "Soal Terjawab": row.terjawab
-        }));
+        // 2. Gabungkan dengan endpoint spesifik untuk export
+        const exportUrl = `${apiBaseUrl}/admin/export/semua-hasil-ujian`;
 
-        // 3. Buat worksheet dari data
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport, { header: headers });
-
-        // 4. (Opsional) Atur lebar kolom agar tidak terlalu sempit
-        const columnWidths = [
-            { wch: 5 },   // No.
-            { wch: 20 },  // Username
-            { wch: 15 },  // Nama Ujian
-            { wch: 20 },  // Waktu Mulai
-            { wch: 20 },  // Waktu Selesai
-            { wch: 12 },  // Jumlah Soal
-            { wch: 12 },  // Soal Terjawab
-        ];
-        worksheet["!cols"] = columnWidths;
-
-        // 5. Buat workbook baru dan tambahkan worksheet
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Ujian");
-
-        // 6. Generate file Excel dan trigger download
-        XLSX.writeFile(workbook, "Hasil_Ujian_Peserta.xlsx");
+        // 3. Buka URL tersebut di tab baru, browser akan otomatis men-downloadnya
+        window.open(exportUrl, '_blank');
     };
 
     return (
@@ -432,11 +397,6 @@ export default function HasilUjian() {
                                                     <HapusHasilUjian
                                                         pesertaId={row.peserta_id} ujianId={row.ujian_id} onHapus={handleHapusHasilUjian}
                                                     />
-                                                    {/* <HapusPeserta
-                                                        pesertaId={row.peserta_id}
-                                                        ujianId={row.ujian_id}
-                                                        onHapus={handleHapusHasilUjian}
-                                                    /> */}
                                                 </TableCell>
                                             </TableRow>
                                         ))
