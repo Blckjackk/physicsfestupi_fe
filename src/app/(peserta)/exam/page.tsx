@@ -308,14 +308,37 @@ export default function ExamPage() {
   const currentQuestionData = examSession.soal[currentQuestion - 1];
   const answeredQuestions = Object.keys(answers).map(Number);
   
+  // Get base URL for images
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  
   // Convert question data to expected format for QuestionCard
   const questionOptions = [
-    { label: 'A', text: currentQuestionData.opsi_a || '' },
-    { label: 'B', text: currentQuestionData.opsi_b || '' },
-    { label: 'C', text: currentQuestionData.opsi_c || '' },
-    { label: 'D', text: currentQuestionData.opsi_d || '' },
-    { label: 'E', text: currentQuestionData.opsi_e || '' },
-  ].filter(opt => opt.text); // Filter out empty options
+    { 
+      label: 'A', 
+      text: currentQuestionData.opsi_a || '',
+      image: currentQuestionData.opsi_a_media ? `${API_BASE_URL}/${currentQuestionData.opsi_a_media}` : undefined
+    },
+    { 
+      label: 'B', 
+      text: currentQuestionData.opsi_b || '',
+      image: currentQuestionData.opsi_b_media ? `${API_BASE_URL}/${currentQuestionData.opsi_b_media}` : undefined
+    },
+    { 
+      label: 'C', 
+      text: currentQuestionData.opsi_c || '',
+      image: currentQuestionData.opsi_c_media ? `${API_BASE_URL}/${currentQuestionData.opsi_c_media}` : undefined
+    },
+    { 
+      label: 'D', 
+      text: currentQuestionData.opsi_d || '',
+      image: currentQuestionData.opsi_d_media ? `${API_BASE_URL}/${currentQuestionData.opsi_d_media}` : undefined
+    },
+    { 
+      label: 'E', 
+      text: currentQuestionData.opsi_e || '',
+      image: currentQuestionData.opsi_e_media ? `${API_BASE_URL}/${currentQuestionData.opsi_e_media}` : undefined
+    },
+  ].filter(opt => opt.text || opt.image); // Filter out empty options
 
   return (
     <div className="flex h-screen flex-col bg-[#F9F9F9]">
@@ -331,6 +354,7 @@ export default function ExamPage() {
               <QuestionCard
                 questionNumber={currentQuestion}
                 questionText={currentQuestionData.pertanyaan}
+                image={currentQuestionData.media_soal ? `${API_BASE_URL}/${currentQuestionData.media_soal}` : undefined}
                 answers={questionOptions}
                 selectedAnswer={answers[currentQuestion] || null}
                 onSelectAnswer={handleSelectAnswer}

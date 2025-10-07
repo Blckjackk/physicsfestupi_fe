@@ -25,3 +25,21 @@ p,
 span, div {
   font-family: var(--font-heading), "Poppins", "Inter", system-ui, sans-serif;
 }
+
+/* ContentEditable placeholder styling */
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* ContentEditable focus styling */
+[contenteditable]:focus {
+  outline: none;
+}
+
+/* Ensure contentEditable respects line breaks */
+[contenteditable] {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

@@ -263,12 +263,9 @@ export const adminService = {
       
       formData.append('jawaban_benar', data.jawaban_benar);
 
-      // Send as multipart/form-data
-      const response = await api.post<any>('/admin/soal', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Send as multipart/form-data using upload method
+      console.log('Sending FormData to /admin/soal with files...');
+      const response = await api.upload<any>('/admin/soal', formData);
       return response.data.data;
     } else {
       // Send as regular JSON if no files
@@ -278,11 +275,64 @@ export const adminService = {
   },
 
   /**
-   * Update soal
+   * Update soal with file upload support
    */
   updateSoal: async (id: number, data: UpdateSoalRequest): Promise<Soal> => {
-    const response = await api.put<any>(`/admin/soal/${id}`, data);
-    return response.data;
+    console.log('updateSoal called with data:', data);
+    
+    // Always use FormData for update to handle potential file uploads
+    const formData = new FormData();
+    
+    // Append basic fields
+    if (data.ujian_id !== undefined) formData.append('ujian_id', data.ujian_id.toString());
+    if (data.nomor_soal !== undefined) formData.append('nomor_soal', data.nomor_soal.toString());
+    if (data.pertanyaan) formData.append('pertanyaan', data.pertanyaan);
+    if (data.tipe_soal) formData.append('tipe_soal', data.tipe_soal);
+    if (data.deskripsi_soal) formData.append('deskripsi_soal', data.deskripsi_soal);
+    if (data.jawaban_benar) formData.append('jawaban_benar', data.jawaban_benar);
+    
+    // Append media_soal if it's a File (only new uploads)
+    if (data.media_soal instanceof File) {
+      formData.append('media_soal', data.media_soal);
+      console.log('Appending media_soal file');
+    }
+    
+    // Append opsi A-E with media (only new File objects)
+    if (data.opsi_a) formData.append('opsi_a', data.opsi_a);
+    if (data.opsi_a_media instanceof File) {
+      formData.append('opsi_a_media', data.opsi_a_media);
+      console.log('Appending opsi_a_media file');
+    }
+    
+    if (data.opsi_b) formData.append('opsi_b', data.opsi_b);
+    if (data.opsi_b_media instanceof File) {
+      formData.append('opsi_b_media', data.opsi_b_media);  
+      console.log('Appending opsi_b_media file');
+    }
+    
+    if (data.opsi_c) formData.append('opsi_c', data.opsi_c);
+    if (data.opsi_c_media instanceof File) {
+      formData.append('opsi_c_media', data.opsi_c_media);
+      console.log('Appending opsi_c_media file');
+    }
+    
+    if (data.opsi_d) formData.append('opsi_d', data.opsi_d);
+    if (data.opsi_d_media instanceof File) {
+      formData.append('opsi_d_media', data.opsi_d_media);
+      console.log('Appending opsi_d_media file');
+    }
+    
+    if (data.opsi_e) formData.append('opsi_e', data.opsi_e);
+    if (data.opsi_e_media instanceof File) {
+      formData.append('opsi_e_media', data.opsi_e_media);
+      console.log('Appending opsi_e_media file');
+    }
+
+    // Use upload method for multipart/form-data
+    console.log('Sending FormData to /admin/soal/' + id + ' with all fields...');
+    const response = await api.upload<any>(`/admin/soal/${id}`, formData);
+    console.log('Backend response:', response.data);
+    return response.data.data || response.data;
   },
 
   /**

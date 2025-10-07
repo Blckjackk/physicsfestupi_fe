@@ -3,6 +3,7 @@
 
 import Image from 'next/image';
 import AnswerOption from './AnswerOption';
+import FormattedText from '../FormattedText';
 
 interface Answer {
   label: string;
@@ -40,13 +41,12 @@ export default function QuestionCard({
 
       {/* Question Content - No Scroll */}
       <div className="p-6">
-        {/* Question Text */}
-        <div className="mb-4 font-body text-[14px] leading-relaxed text-gray-800">
-          {questionText.split('\n\n').map((paragraph, idx) => (
-            <p key={idx} className="mb-3 last:mb-0">
-              {paragraph}
-            </p>
-          ))}
+        {/* Question Text with Formatting Support */}
+        <div className="mb-4">
+          <FormattedText 
+            text={questionText} 
+            className="font-body text-[14px] leading-relaxed text-gray-800"
+          />
         </div>
 
         {/* Question Image (if exists) */}

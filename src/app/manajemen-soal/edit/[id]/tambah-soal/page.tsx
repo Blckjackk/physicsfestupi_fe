@@ -13,8 +13,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
+import RichTextInput from '@/components/RichTextInput';
 import { adminService } from '@/services/admin.service';
-import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Image as ImageIcon, X } from 'lucide-react';
 
 export default function TambahSoalPage() {
   const router = useRouter();
@@ -67,6 +68,107 @@ export default function TambahSoalPage() {
   const [gambarEPreview, setGambarEPreview] = useState<string>('');
   const [jawabanBenar, setJawabanBenar] = useState('D');
 
+  // Helper function to insert formatting tags into textarea
+  const insertFormatting = (currentValue: string, setValue: (val: string) => void, before: string, after: string) => {
+    const textarea = document.getElementById('soal-textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = currentValue.substring(start, end);
+    
+    // If text is selected, wrap it with formatting tags
+    if (selectedText) {
+      const newValue = currentValue.substring(0, start) + before + selectedText + after + currentValue.substring(end);
+      setValue(newValue);
+      
+      // Set cursor position after the formatted text
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + before.length, end + before.length);
+      }, 0);
+    } else {
+      // If no selection, insert formatting tags at cursor position
+      const newValue = currentValue.substring(0, start) + before + after + currentValue.substring(end);
+      setValue(newValue);
+      
+      // Set cursor between the tags
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + before.length, start + before.length);
+      }, 0);
+    }
+  };
+
+  // Helper function for contentEditable divs with real-time formatting
+  const applyFormatting = (command: string) => {
+    document.execCommand(command, false);
+  };
+
+  // Helper function for custom formatting (alignment, indent, etc)
+  const applyCustomFormatting = (elementId: string, htmlTag: string, style?: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    element.focus();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString();
+
+    if (selectedText) {
+      const wrapper = document.createElement(htmlTag);
+      if (style) wrapper.setAttribute('style', style);
+      
+      try {
+        range.surroundContents(wrapper);
+      } catch (e) {
+        // Fallback if surroundContents fails
+        const span = document.createElement(htmlTag);
+        if (style) span.setAttribute('style', style);
+        span.textContent = selectedText;
+        range.deleteContents();
+        range.insertNode(span);
+      }
+
+      // Trigger input event to update state
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  };
+
+  // Helper function for input fields (not textarea) - LEGACY
+  const insertFormattingForInput = (inputId: string, currentValue: string, setValue: (val: string) => void, before: string, after: string) => {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (!input) return;
+
+    const start = input.selectionStart || 0;
+    const end = input.selectionEnd || 0;
+    const selectedText = currentValue.substring(start, end);
+    
+    // If text is selected, wrap it with formatting tags
+    if (selectedText) {
+      const newValue = currentValue.substring(0, start) + before + selectedText + after + currentValue.substring(end);
+      setValue(newValue);
+      
+      // Set cursor position after the formatted text
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(start + before.length, end + before.length);
+      }, 0);
+    } else {
+      // If no selection, insert formatting tags at cursor position
+      const newValue = currentValue.substring(0, start) + before + after + currentValue.substring(end);
+      setValue(newValue);
+      
+      // Set cursor between the tags
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(start + before.length, start + before.length);
+      }, 0);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -81,8 +183,18 @@ export default function TambahSoalPage() {
     }
 
     try {
+      // Debug: Log file objects
+      console.log('Submitting with files:', {
+        media_soal: soalGambar ? 'File present' : 'No file',
+        opsi_a_media: gambarA ? 'File present' : 'No file',
+        opsi_b_media: gambarB ? 'File present' : 'No file',
+        opsi_c_media: gambarC ? 'File present' : 'No file',
+        opsi_d_media: gambarD ? 'File present' : 'No file',
+        opsi_e_media: gambarE ? 'File present' : 'No file',
+      });
+
       // Create new soal via backend API with file upload support
-      await adminService.createSoal({
+      const result = await adminService.createSoal({
         ujian_id: parseInt(examId as string),
         nomor_soal: nextNomorSoal,
         tipe_soal: tipeSoal === 'Gambar' ? 'gambar' : 'text',
@@ -101,11 +213,12 @@ export default function TambahSoalPage() {
         jawaban_benar: jawabanBenar.toUpperCase(), // Backend expects uppercase
       });
 
+      console.log('Created soal result:', result);
       alert('Soal berhasil ditambahkan');
       router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
     } catch (error) {
       console.error('Error adding soal:', error);
-      alert('Gagal menambahkan soal');
+      alert('Gagal menambahkan soal: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -153,63 +266,61 @@ export default function TambahSoalPage() {
                     >
                       <option value="Gambar">Gambar</option>
                       <option value="Teks">Teks</option>
-                      <option value="Video">Video</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
 
-                {/* Soal - Rich Text Editor Placeholder */}
+                {/* Soal - Rich Text Editor with Formatting */}
                 <div>
                   <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
                     Soal
                   </label>
-                  <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all">
-                    {/* Toolbar */}
-                    <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-2">
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Left">
-                        <span className="text-sm font-semibold text-gray-700">≡</span>
+                  <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all bg-white">
+                    {/* Toolbar at Top - Small Height */}
+                    <div className="flex items-center justify-center gap-0.5 border-b border-gray-200 bg-gray-50 px-2 py-1">
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('insertUnorderedList'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Bullet List">
+                        <span className="text-xs text-gray-700">⚏</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Center">
-                        <span className="text-sm font-semibold text-gray-700">≣</span>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyLeft'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Left">
+                        <span className="text-xs text-gray-700">≡</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Align Right">
-                        <span className="text-sm font-semibold text-gray-700">☰</span>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyCenter'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Center">
+                        <span className="text-xs text-gray-700">≣</span>
                       </button>
-                      <div className="mx-1 h-6 w-px bg-gray-300"></div>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bullet List">
-                        <span className="text-sm font-semibold text-gray-700">⚏</span>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyRight'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Right">
+                        <span className="text-xs text-gray-700">☰</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Bold">
-                        <span className="text-sm font-bold text-gray-700">B</span>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyFull'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Justify">
+                        <span className="text-xs text-gray-700">⊞</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Underline">
-                        <span className="text-sm font-semibold text-gray-700">U</span>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('indent'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Indent">
+                        <span className="text-xs text-gray-700">→</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Text Color">
-                        <span className="text-sm text-gray-700">A</span>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('outdent'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Outdent">
+                        <span className="text-xs text-gray-700">←</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Paragraph">
-                        <span className="text-sm text-gray-700">P</span>
+                      <div className="mx-0.5 h-4 w-px bg-gray-300"></div>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('insertParagraph'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Paragraph">
+                        <span className="text-xs text-gray-700">P</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Script">
-                        <span className="text-sm text-gray-700">ℬ</span>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('bold'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Bold">
+                        <span className="text-xs font-bold text-gray-700">B</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Heading">
-                        <span className="text-sm text-gray-700">H</span>
+                      <button type="button" onClick={() => applyCustomFormatting('soal-input', 'h3', 'font-size: 1.125rem; font-weight: 600;')} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Heading">
+                        <span className="text-xs text-gray-700">H</span>
                       </button>
-                      <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors" title="Italic">
-                        <span className="text-sm italic text-gray-700">I</span>
+                      <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('italic'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Italic">
+                        <span className="text-xs italic text-gray-700">I</span>
                       </button>
                     </div>
-                    {/* Text Area */}
-                    <textarea
+                    {/* Rich Text Input - Larger */}
+                    <RichTextInput
+                      id="soal-input"
                       value={soal}
-                      onChange={(e) => setSoal(e.target.value)}
-                      rows={6}
-                      className="w-full bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none resize-none"
+                      onChange={setSoal}
                       placeholder="Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin."
-                      required
+                      className="min-h-[150px]"
                     />
                   </div>
                 </div>
@@ -284,62 +395,58 @@ export default function TambahSoalPage() {
                     { label: 'E', value: jawabanE, setValue: setJawabanE, gambar: gambarE, setGambar: setGambarE, preview: gambarEPreview, setPreview: setGambarEPreview },
                   ].map((option) => (
                     <div key={option.label} className="rounded-xl border-2 border-gray-200 bg-gray-50 p-6">
-                      {/* Jawaban Text */}
-                      <div className="mb-4">
-                        <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
-                          Jawaban {option.label}
-                        </label>
-                        <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all bg-white">
-                          {/* Toolbar */}
-                          <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-3 py-2">
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm font-semibold text-gray-700">≡</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm font-semibold text-gray-700">≣</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm font-semibold text-gray-700">☰</span>
-                            </button>
-                            <div className="mx-1 h-6 w-px bg-gray-300"></div>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm font-semibold text-gray-700">⚏</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm font-bold text-gray-700">B</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm font-semibold text-gray-700">U</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm text-gray-700">A</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm text-gray-700">P</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm text-gray-700">ℬ</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm text-gray-700">H</span>
-                            </button>
-                            <button type="button" className="rounded p-1.5 hover:bg-gray-200 transition-colors">
-                              <span className="text-sm italic text-gray-700">I</span>
-                            </button>
-                          </div>
-                          {/* Input */}
-                          <input
-                            type="text"
-                            value={option.value}
-                            onChange={(e) => option.setValue(e.target.value)}
-                            className="w-full bg-white px-4 py-3 font-inter text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                            placeholder="#1231"
-                            required
-                          />
+                    {/* Jawaban Text */}
+                    <div className="mb-4">
+                      <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
+                        Jawaban {option.label}
+                      </label>
+                      <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all bg-white">
+                        {/* Toolbar at Top - Small Height */}
+                        <div className="flex items-center justify-center gap-0.5 border-b border-gray-200 bg-gray-50 px-2 py-1">
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('insertUnorderedList'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Bullet List">
+                            <span className="text-xs text-gray-700">⚏</span>
+                          </button>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('justifyLeft'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Left">
+                            <span className="text-xs text-gray-700">≡</span>
+                          </button>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('justifyCenter'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Center">
+                            <span className="text-xs text-gray-700">≣</span>
+                          </button>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('justifyRight'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Right">
+                            <span className="text-xs text-gray-700">☰</span>
+                          </button>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('justifyFull'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Justify">
+                            <span className="text-xs text-gray-700">⊞</span>
+                          </button>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('indent'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Indent">
+                            <span className="text-xs text-gray-700">→</span>
+                          </button>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('outdent'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Outdent">
+                            <span className="text-xs text-gray-700">←</span>
+                          </button>
+                          <div className="mx-0.5 h-4 w-px bg-gray-300"></div>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('insertParagraph'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Paragraph">
+                            <span className="text-xs text-gray-700">P</span>
+                          </button>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('bold'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Bold">
+                            <span className="text-xs font-bold text-gray-700">B</span>
+                          </button>
+                          <button type="button" onClick={() => applyCustomFormatting(`jawaban-${option.label}`, 'h3', 'font-size: 1.125rem; font-weight: 600;')} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Heading">
+                            <span className="text-xs text-gray-700">H</span>
+                          </button>
+                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('italic'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Italic">
+                            <span className="text-xs italic text-gray-700">I</span>
+                          </button>
                         </div>
+                        {/* Rich Text Input - Larger */}
+                        <RichTextInput
+                          id={`jawaban-${option.label}`}
+                          value={option.value}
+                          onChange={option.setValue}
+                          placeholder="Masukkan jawaban..."
+                        />
                       </div>
-
-                      {/* Gambar (Optional) - File Upload with Preview */}
+                    </div>                      {/* Gambar (Optional) - File Upload with Preview */}
                       <div>
                         <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
                           Gambar {option.label} (Opsional)

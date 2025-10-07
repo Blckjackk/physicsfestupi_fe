@@ -6,7 +6,6 @@ import * as XLSX from "xlsx";
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, FileCheck, Pencil, Search, Trash } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import Image from 'next/image';
 
 import Sidebar from '@/components/dashboard-admin/Sidebar';
@@ -33,18 +32,18 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { HapusPeserta } from "./hapus/page";
 import Link from "next/link";
+import { HapusHasilUjian } from "./hapus/page";
 
-const data_peserta_initial = [
-    { id: '1', no: 1, username: 'asep123', nama_ujian: 'Ujian A', mulai: '01/10/2025 10:00:00', selesai: '01/10/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
-    { id: '2', no: 2, username: 'asep124', nama_ujian: 'Ujian A', mulai: '03/10/2025 10:00:00', selesai: '03/10/2025 11:00:00', jumlah_soal: 100, terjawab: 100 },
-    { id: '3', no: 3, username: 'asep125', nama_ujian: 'Ujian A', mulai: '02/10/2025 10:00:00', selesai: '02/10/2025 13:00:00', jumlah_soal: 100, terjawab: 100 },
-    { id: '4', no: 4, username: 'ajam', nama_ujian: 'Ujian A', mulai: '05/09/2025 10:00:00', selesai: '05/09/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
-    { id: '5', no: 5, username: 'asep127', nama_ujian: 'Ujian A', mulai: '15/10/2025 10:00:00', selesai: '15/10/2025 11:30:00', jumlah_soal: 100, terjawab: 100 },
-    { id: '6', no: 6, username: 'asep128', nama_ujian: 'Ujian A', mulai: '20/08/2025 10:00:00', selesai: '20/08/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
-    { id: '7', no: 7, username: 'asep129', nama_ujian: 'Ujian A', mulai: '01/01/2026 10:00:00', selesai: '01/01/2026 12:00:00', jumlah_soal: 100, terjawab: 100 },
-];
+// const data_peserta_initial = [
+//     { id: '1', no: 1, username: 'asep123', nama_ujian: 'Ujian A', mulai: '01/10/2025 10:00:00', selesai: '01/10/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
+//     { id: '2', no: 2, username: 'asep124', nama_ujian: 'Ujian A', mulai: '03/10/2025 10:00:00', selesai: '03/10/2025 11:00:00', jumlah_soal: 100, terjawab: 100 },
+//     { id: '3', no: 3, username: 'asep125', nama_ujian: 'Ujian A', mulai: '02/10/2025 10:00:00', selesai: '02/10/2025 13:00:00', jumlah_soal: 100, terjawab: 100 },
+//     { id: '4', no: 4, username: 'ajam', nama_ujian: 'Ujian A', mulai: '05/09/2025 10:00:00', selesai: '05/09/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
+//     { id: '5', no: 5, username: 'asep127', nama_ujian: 'Ujian A', mulai: '15/10/2025 10:00:00', selesai: '15/10/2025 11:30:00', jumlah_soal: 100, terjawab: 100 },
+//     { id: '6', no: 6, username: 'asep128', nama_ujian: 'Ujian A', mulai: '20/08/2025 10:00:00', selesai: '20/08/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
+//     { id: '7', no: 7, username: 'asep129', nama_ujian: 'Ujian A', mulai: '01/01/2026 10:00:00', selesai: '01/01/2026 12:00:00', jumlah_soal: 100, terjawab: 100 },
+// ];
 
 interface HasilUjian {
     no: number;
@@ -66,6 +65,7 @@ export default function HasilUjian() {
     const [hasilUjian, setHasilUjian] = useState<HasilUjian[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isSuccessHapusOpen, setIsSuccessHapusOpen] = React.useState(false);
 
     // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -162,71 +162,95 @@ export default function HasilUjian() {
     };
 
     const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
-    const handleHapusPeserta = (pesertaId: string) => {
-        // Hapus data dari state peserta
-        setHasilUjian(prevHasilUjian => prevHasilUjian.filter(p => p.aktivitas_id.toString() !== pesertaId));
 
-        // Buka dialog sukses
-        setIsSuccessOpen(true);
+    // Fungsi ini sekarang menerima dua ID dan mengembalikan Promise<boolean>
+    const handleHapusHasilUjian = async (pesertaId: number, ujianId: number): Promise<boolean> => {
+        try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            const response = await fetch(`${apiBaseUrl}/admin/hasil-ujian/${pesertaId}/${ujianId}`, {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json' },
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal menghapus hasil ujian.');
+            }
+
+            // Jika API sukses, baru update state di frontend
+            // Hapus berdasarkan kombinasi pesertaId dan ujianId
+            setHasilUjian(prev => prev.filter(
+                p => !(p.peserta_id === pesertaId && p.ujian_id === ujianId)
+            ));
+
+            setIsSuccessHapusOpen(true);
+            return true;
+
+        } catch (error: any) {
+            console.error('Error:', error);
+            alert(`Gagal: ${error.message}`);
+            return false;
+        }
     };
 
     const [isConfirmHapusPilihOpen, setIsConfirmHapusPilihOpen] = React.useState(false);
     const [isSuccessHapusPilihOpen, setIsSuccessHapusPilihOpen] = React.useState(false);
-    const handleHapusPilih = () => {
-        // Filter state 'peserta'
-        setHasilUjian(prevHasilUjian => prevHasilUjian.filter(p => !selectedRows.includes(p.aktivitas_id.toString())));
 
-        // Kosongkan kembali daftar baris yang terpilih
-        setSelectedRows([]);
 
-        // Buka dialog sukses
-        setIsSuccessHapusPilihOpen(true);
+    const handleHapusPilih = async () => {
+        if (selectedRows.length === 0) return;
+
+        try {
+            // 1. Cari data lengkap dari baris yang dipilih
+            const itemsToDelete = hasilUjian.filter(item =>
+                selectedRows.includes(item.aktivitas_id.toString())
+            );
+
+            // 2. Buat payload sesuai format yang diminta API
+            const payload = itemsToDelete.map(item => ({
+                peserta_id: item.peserta_id,
+                ujian_id: item.ujian_id,
+            }));
+
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            const response = await fetch(`${apiBaseUrl}/admin/hasil-ujian/batch-delete`, {
+                method: 'POST', // Gunakan method POST
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ hasil_ujian: payload }), // Kirim dengan key 'hasil_ujian'
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Gagal menghapus hasil ujian terpilih.');
+            }
+
+            // 3. Jika API sukses, baru update state di frontend
+            setHasilUjian(prev => prev.filter(p => !selectedRows.includes(p.aktivitas_id.toString())));
+            setSelectedRows([]);
+            setIsConfirmHapusPilihOpen(false);
+            setIsSuccessHapusPilihOpen(true);
+
+        } catch (error: any) {
+            console.error('Error:', error);
+            alert(`Gagal: ${error.message}`);
+            // Biarkan dialog konfirmasi terbuka jika gagal
+        }
     };
 
     const handleExportExcel = () => {
-        // 1. Siapkan nama kolom untuk header di Excel
-        const headers = [
-            "No.",
-            "Username",
-            "Nama Ujian",
-            "Waktu Mulai",
-            "Waktu Selesai",
-            "Jumlah Soal",
-            "Soal Terjawab"
-        ];
+        // 1. Dapatkan URL dasar API dari environment variable
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
-        // 2. Format ulang data `sortedAndFilteredData` agar sesuai dengan header
-        const dataToExport = sortedAndFilteredData.map(row => ({
-            "No.": row.no,
-            "Username": row.username,
-            "Nama Ujian": row.nama_ujian,
-            "Waktu Mulai": row.mulai,
-            "Waktu Selesai": row.selesai,
-            "Jumlah Soal": row.jumlah_soal,
-            "Soal Terjawab": row.terjawab
-        }));
+        // 2. Gabungkan dengan endpoint spesifik untuk export
+        const exportUrl = `${apiBaseUrl}/admin/export/semua-hasil-ujian`;
 
-        // 3. Buat worksheet dari data
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport, { header: headers });
-
-        // 4. (Opsional) Atur lebar kolom agar tidak terlalu sempit
-        const columnWidths = [
-            { wch: 5 },   // No.
-            { wch: 20 },  // Username
-            { wch: 15 },  // Nama Ujian
-            { wch: 20 },  // Waktu Mulai
-            { wch: 20 },  // Waktu Selesai
-            { wch: 12 },  // Jumlah Soal
-            { wch: 12 },  // Soal Terjawab
-        ];
-        worksheet["!cols"] = columnWidths;
-
-        // 5. Buat workbook baru dan tambahkan worksheet
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Hasil Ujian");
-
-        // 6. Generate file Excel dan trigger download
-        XLSX.writeFile(workbook, "Hasil_Ujian_Peserta.xlsx");
+        // 3. Buka URL tersebut di tab baru, browser akan otomatis men-downloadnya
+        window.open(exportUrl, '_blank');
     };
 
     return (
@@ -353,7 +377,10 @@ export default function HasilUjian() {
                                     ) : (
                                         sortedAndFilteredData.map((row) => (
                                             <TableRow key={row.aktivitas_id} className='border-[#E4E4E4]'>
-                                                <TableCell><Checkbox /></TableCell>
+                                                <TableCell><Checkbox
+                                                    onCheckedChange={(checked) => handleSelectRow(row.aktivitas_id.toString(), checked as boolean)}
+                                                    checked={selectedRows.includes(row.aktivitas_id.toString())}
+                                                /></TableCell>
                                                 <TableCell>{row.no}</TableCell>
                                                 <TableCell>{row.username}</TableCell>
                                                 <TableCell>{row.nama_ujian}</TableCell>
@@ -367,7 +394,10 @@ export default function HasilUjian() {
                                                     </Link>
                                                     {/* Hapus di sini menggunakan aktivitas_id */}
 
-                                                    <HapusPeserta pesertaId={row.aktivitas_id.toString()} onHapus={handleHapusPeserta} /></TableCell>
+                                                    <HapusHasilUjian
+                                                        pesertaId={row.peserta_id} ujianId={row.ujian_id} onHapus={handleHapusHasilUjian}
+                                                    />
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -387,6 +417,31 @@ export default function HasilUjian() {
                         <span>Export Hasil</span>
                     </Button>
                 </div>
+                <Dialog open={isSuccessHapusOpen} onOpenChange={setIsSuccessHapusOpen}>
+                    <DialogContent className="font-heading bg-white sm:max-w-[425px]">
+                        <DialogHeader className="flex items-center justify-center">
+                            <DialogTitle className="flex flex-col items-center text-black text-xl font-semibold text-center">
+                                <Image
+                                    src="/images/berhasil.png"
+                                    alt="Logo Berhasil"
+                                    width={80}
+                                    height={80}
+                                />
+                                <div className="mt-2">Berhasil</div>
+                            </DialogTitle>
+                            <DialogDescription className="text-base text-black font-medium">
+                                Berhasil Hapus Hasil Ujian
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="grid grid-cols-1 gap-4">
+                            <DialogClose asChild>
+                                <Button className="w-full text-white bg-[#749221]" variant="outline">
+                                    Tutup
+                                </Button>
+                            </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
                 <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
                     <DialogContent className="font-heading bg-white sm:max-w-[425px]">
                         <DialogHeader className="flex items-center justify-center">
@@ -400,7 +455,7 @@ export default function HasilUjian() {
                                 <div className="mt-2">Berhasil</div>
                             </DialogTitle>
                             <DialogDescription className="text-base text-black font-medium">
-                                Berhasil Hapus Peserta
+                                Berhasil Hapus Hasil Ujian Peserta
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="grid grid-cols-1 gap-4">
@@ -426,7 +481,7 @@ export default function HasilUjian() {
                             </DialogTitle>
                             <DialogDescription className="text-base text-black font-medium">
                                 {/* Sedikit modifikasi pesan agar lebih sesuai */}
-                                Berhasil Hapus Peserta Terpilih
+                                Berhasil Hapus Hasil Ujian Terpilih
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="grid grid-cols-1 gap-4">
