@@ -338,7 +338,6 @@ export default function EditSoalPage() {
                   >
                     <option value="Gambar">Gambar</option>
                     <option value="Teks">Teks</option>
-                    <option value="Video">Video</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
@@ -421,18 +420,31 @@ export default function EditSoalPage() {
                   >
                     <div className="text-center">
                       {soalGambarPreview ? (
-                        <div className="space-y-2">
+                        <div className="relative">
                           <img 
                             src={soalGambarPreview} 
                             alt="Preview" 
                             className="mx-auto max-h-48 rounded-lg object-contain"
                           />
-                          <p className="font-inter text-sm font-medium text-gray-700">
-                            {soalGambar ? soalGambar.name : 'Gambar saat ini'}
-                          </p>
-                          <p className="font-inter text-xs text-gray-500">
-                            Klik untuk mengganti gambar
-                          </p>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setSoalGambar(null);
+                              setSoalGambarPreview('');
+                            }}
+                            className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 shadow-lg"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          <div className="mt-2 space-y-1">
+                            <p className="font-inter text-sm font-medium text-gray-700">
+                              {soalGambar ? soalGambar.name : 'Gambar saat ini'}
+                            </p>
+                            <p className="font-inter text-xs text-gray-500">
+                              Klik untuk mengganti gambar
+                            </p>
+                          </div>
                         </div>
                       ) : (
                         <>
@@ -538,18 +550,31 @@ export default function EditSoalPage() {
                         >
                           <div className="text-center">
                             {option.preview ? (
-                              <div className="space-y-2">
+                              <div className="relative">
                                 <img 
                                   src={option.preview} 
                                   alt={`Preview ${option.label}`} 
                                   className="mx-auto max-h-32 rounded-lg object-contain"
                                 />
-                                <p className="font-inter text-sm font-medium text-gray-700">
-                                  {option.gambar ? option.gambar.name : 'Gambar saat ini'}
-                                </p>
-                                <p className="font-inter text-xs text-gray-500">
-                                  Klik untuk mengganti
-                                </p>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    option.setGambar(null);
+                                    option.setPreview('');
+                                  }}
+                                  className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600 shadow-lg"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                                <div className="mt-2 space-y-1">
+                                  <p className="font-inter text-sm font-medium text-gray-700">
+                                    {option.gambar ? option.gambar.name : 'Gambar saat ini'}
+                                  </p>
+                                  <p className="font-inter text-xs text-gray-500">
+                                    Klik untuk mengganti
+                                  </p>
+                                </div>
                               </div>
                             ) : (
                               <>

@@ -25,7 +25,7 @@ export default function AnswerOption({
       <button
         onClick={onClick}
         className={`
-          group relative flex w-full flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all
+          group relative flex w-full items-center gap-3 rounded-xl border-2 p-4 transition-all
           ${
             isSelected
               ? 'border-[#6A9E3C] bg-[#6A9E3C] shadow-md'
@@ -33,10 +33,10 @@ export default function AnswerOption({
           }
         `}
       >
-        {/* Label at top */}
+        {/* Label at left */}
         <div
           className={`
-            flex h-8 w-8 items-center justify-center rounded-lg font-heading text-[15px] font-bold
+            flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg font-heading text-[15px] font-bold
             ${
               isSelected
                 ? 'bg-white text-[#6A9E3C]'
@@ -47,11 +47,11 @@ export default function AnswerOption({
           {label}
         </div>
 
-        {/* Answer Image - Fixed size & proportional */}
+        {/* Answer Image - Left aligned */}
         <img 
           src={image} 
           alt={`Opsi ${label}`}
-          className="mx-auto my-2 block max-h-[200px] max-w-[300px] rounded-lg object-contain"
+          className="block max-h-[200px] max-w-[300px] rounded-lg object-contain"
         />
 
         {/* Check Icon (only when selected) */}
