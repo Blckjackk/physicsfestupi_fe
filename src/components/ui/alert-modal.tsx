@@ -36,7 +36,7 @@ const alertConfig = {
     icon: CheckCircle,
     iconBgColor: "bg-green-50",
     iconColor: "text-[#6b9e4d]",
-    buttonBgColor: "bg-[#6b9e4d] hover:bg-[#5a8a3e]",
+    buttonBgColor: "bg-[#7a5cb3] hover:bg-[#6b4d9f]",
     secondaryButtonBgColor: "bg-gray-600 hover:bg-gray-700",
     borderColor: "border-green-100",
   },
@@ -44,7 +44,7 @@ const alertConfig = {
     icon: AlertTriangle,
     iconBgColor: "bg-orange-50",
     iconColor: "text-[#ffac27]",
-    buttonBgColor: "bg-[#6b9e4d] hover:bg-[#5a8a3e]",
+    buttonBgColor: "bg-[#ffac27] hover:bg-[#e6971f]",
     borderColor: "border-orange-100",
   },
   info: {

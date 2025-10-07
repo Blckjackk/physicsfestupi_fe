@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import AlertModal, { AlertType } from "@/components/ui/alert-modal";
 import { authService } from "@/services/auth.service";
 import { ApiError } from "@/lib/api";
+import { calculateExamDuration } from "@/utils/time.utils";
 
 type FieldErrors = {
   username?: string;
@@ -103,11 +104,22 @@ export default function LoginPage() {
       }
 
       // Peserta belum submit - boleh masuk
+      // Calculate exam duration from ujian data
+      let examDuration = "1 jam 30 menit"; // fallback default
+      if (data.ujian && data.ujian.waktu_mulai_pengerjaan && data.ujian.waktu_akhir_pengerjaan) {
+        examDuration = calculateExamDuration(
+          data.ujian.waktu_mulai_pengerjaan,
+          data.ujian.waktu_akhir_pengerjaan
+        );
+      }
+
       setAlert({
         isOpen: true,
         type: "success",
-        title: "Berhasil",
-        message: `Selamat datang ${data.peserta.username}! Anda akan diarahkan ke halaman ujian.`,
+        title: "Berhasil!",
+        message: "Login berhasil! Ujian akan segera dimulai. Waktu Anda:",
+        showTimer: true,
+        timerText: examDuration,
         primaryButtonText: "Lanjut",
         secondaryButtonText: "Kembali",
         onPrimaryClick: () => {
@@ -119,10 +131,38 @@ export default function LoginPage() {
     } catch (error) {
       console.error('Login error:', error);
       
-      // Only handle errors from login itself, not from exam check
-      // Exam check errors are already handled in the inner catch
+      // Handle different error types from backend
       if (error instanceof ApiError) {
-        if (error.status === 401) {
+        // Check if error has data with error_type (for exam time validation)
+        if (error.data?.error_type) {
+          const errorData = error.data;
+          
+          if (errorData.error_type === 'exam_not_started') {
+            setAlert({
+              isOpen: true,
+              type: "warning",
+              title: "Peringatan!",
+              message: "Waktu Ujian Belum Dimulai",
+              primaryButtonText: "Tutup",
+            });
+          } else if (errorData.error_type === 'exam_ended') {
+            setAlert({
+              isOpen: true,
+              type: "warning",
+              title: "Peringatan!",
+              message: "Waktu Ujian Sudah Berakhir",
+              primaryButtonText: "Tutup",
+            });
+          } else {
+            setAlert({
+              isOpen: true,
+              type: "error",
+              title: "Error!",
+              message: errorData.message || "Terjadi kesalahan saat validasi ujian.",
+              primaryButtonText: "Tutup",
+            });
+          }
+        } else if (error.status === 401) {
           setAlert({
             isOpen: true,
             type: "error",

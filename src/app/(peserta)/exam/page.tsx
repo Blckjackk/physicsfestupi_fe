@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ExamHeader from '@/components/exam/ExamHeader';
@@ -10,6 +10,7 @@ import QuestionNavigation from '@/components/exam/QuestionNavigation';
 import AlertModal from '@/components/ui/alert-modal';
 import { authService } from '@/services/auth.service';
 import { examService } from '@/services/exam.service';
+import { ExamTimer } from '@/utils/exam-timer.utils';
 import type { Soal, ExamSessionResponse } from '@/types/api';
 
 export default function ExamPage() {
@@ -20,6 +21,7 @@ export default function ExamPage() {
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [doubtfulQuestions, setDoubtfulQuestions] = useState<number[]>([]);
+  const examTimerRef = useRef<ExamTimer | null>(null);
   
   // Alert modal states
   const [showAlert, setShowAlert] = useState(false);
@@ -58,7 +60,7 @@ export default function ExamPage() {
           ujian: data.ujian,
           soal: data.soal,
           aktivitas: { status: 'sedang_mengerjakan' }, // Simplified for now
-          waktu_tersisa_detik: 7200, // 2 hours default
+          waktu_tersisa_detik: data.ujian.waktu_tersisa_detik || 7200,
         };
         
         setExamSession(transformedSession);
@@ -72,33 +74,78 @@ export default function ExamPage() {
         });
         setAnswers(savedAnswers);
         
-        // Set default time (should be calculated from ujian waktu_akhir)
-        setTimeLeft(7200); // 2 hours
+        // Initialize persistent timer
+        if (data.ujian.waktu_mulai_pengerjaan && data.ujian.waktu_akhir_pengerjaan) {
+          examTimerRef.current = new ExamTimer(
+            ujianId,
+            data.ujian.waktu_mulai_pengerjaan,
+            data.ujian.waktu_akhir_pengerjaan,
+            (remainingSeconds) => {
+              setTimeLeft(remainingSeconds);
+              // Auto-save every 10 seconds
+              if (remainingSeconds % 10 === 0) {
+                saveProgress();
+              }
+            },
+            () => {
+              handleTimeOut();
+            }
+          );
+          examTimerRef.current.start();
+        } else {
+          // Fallback for missing time data
+          setTimeLeft(data.ujian.waktu_tersisa_detik || 7200);
+        }
         
         setIsLoading(false);
       } catch (error: any) {
         console.error('Failed to load exam session:', error);
         setIsLoading(false);
         
-        // Check if exam already submitted
-        const errorMessage = error?.message || error?.toString() || '';
-        if (errorMessage.toLowerCase().includes('sudah') || errorMessage.toLowerCase().includes('submit')) {
-          setAlertConfig({
-            type: 'info',
-            title: 'Info!',
-            message: 'Anda Sudah Mengerjakan Soal!',
-          });
-          setShowAlert(true);
+        // Handle different error types from backend
+        if (error?.response?.data?.error_type) {
+          const errorData = error.response.data;
           
-          // Prevent further interaction - stay on empty page with modal
-          // User will be redirected after closing modal
+          if (errorData.error_type === 'exam_not_started') {
+            setAlertConfig({
+              type: 'info',
+              title: 'Ujian Belum Dimulai!',
+              message: `Ujian akan dimulai pada:\n${errorData.waktu_mulai_formatted}\n\nSilakan kembali pada waktu yang telah ditentukan.`,
+            });
+            setShowAlert(true);
+          } else if (errorData.error_type === 'exam_ended') {
+            setAlertConfig({
+              type: 'warning',
+              title: 'Ujian Sudah Berakhir!',
+              message: `Ujian telah berakhir pada:\n${errorData.waktu_akhir_formatted}\n\nAnda tidak dapat lagi mengakses ujian ini.`,
+            });
+            setShowAlert(true);
+          } else {
+            setAlertConfig({
+              type: 'error',
+              title: 'Error',
+              message: errorData.message || 'Terjadi kesalahan saat memuat ujian.',
+            });
+            setShowAlert(true);
+          }
         } else {
-          setAlertConfig({
-            type: 'error',
-            title: 'Error',
-            message: 'Gagal memuat data ujian. Pastikan backend sedang berjalan.',
-          });
-          setShowAlert(true);
+          // Check if exam already submitted
+          const errorMessage = error?.message || error?.toString() || '';
+          if (errorMessage.toLowerCase().includes('sudah') || errorMessage.toLowerCase().includes('submit')) {
+            setAlertConfig({
+              type: 'info',
+              title: 'Info!',
+              message: 'Anda Sudah Mengerjakan Soal!',
+            });
+            setShowAlert(true);
+          } else {
+            setAlertConfig({
+              type: 'error',
+              title: 'Error',
+              message: 'Gagal memuat data ujian. Pastikan backend sedang berjalan.',
+            });
+            setShowAlert(true);
+          }
         }
       }
     };
@@ -106,35 +153,17 @@ export default function ExamPage() {
     loadExamSession();
   }, [router]);
 
-  // Timer countdown
+  // Cleanup timer on component unmount
   useEffect(() => {
-    if (timeLeft <= 0) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          handleTimeOut();
-          return 0;
-        }
-        
-        // Auto-save every 10 seconds
-        if (prev % 10 === 0) {
-          saveProgress();
-        }
-        
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeLeft]);
+    return () => {
+      if (examTimerRef.current) {
+        examTimerRef.current.stop();
+      }
+    };
+  }, []);
 
   const formatTime = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return ExamTimer.formatTime(seconds);
   };
 
   const saveProgress = async () => {
@@ -243,6 +272,12 @@ export default function ExamPage() {
       
       // Clear authentication and redirect to confirmation page after 2 seconds
       setTimeout(() => {
+        // Stop timer and clear saved state
+        if (examTimerRef.current) {
+          examTimerRef.current.stop();
+        }
+        ExamTimer.clearSavedState();
+        
         authService.logout(); // Clear token and user data
         router.push('/confirmation');
       }, 2000);
@@ -258,6 +293,12 @@ export default function ExamPage() {
   };
 
   const handleLogout = () => {
+    // Stop timer and clear saved state
+    if (examTimerRef.current) {
+      examTimerRef.current.stop();
+    }
+    ExamTimer.clearSavedState();
+    
     authService.logout();
     router.push('/login');
   };
