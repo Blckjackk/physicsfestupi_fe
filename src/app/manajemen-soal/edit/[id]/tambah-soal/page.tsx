@@ -15,7 +15,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
 import RichTextInput from '@/components/RichTextInput';
 import { adminService } from '@/services/admin.service';
-import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Image as ImageIcon, X } from 'lucide-react';
 
 export default function TambahSoalPage() {
   const router = useRouter();
@@ -183,8 +183,18 @@ export default function TambahSoalPage() {
     }
 
     try {
+      // Debug: Log file objects
+      console.log('Submitting with files:', {
+        media_soal: soalGambar ? 'File present' : 'No file',
+        opsi_a_media: gambarA ? 'File present' : 'No file',
+        opsi_b_media: gambarB ? 'File present' : 'No file',
+        opsi_c_media: gambarC ? 'File present' : 'No file',
+        opsi_d_media: gambarD ? 'File present' : 'No file',
+        opsi_e_media: gambarE ? 'File present' : 'No file',
+      });
+
       // Create new soal via backend API with file upload support
-      await adminService.createSoal({
+      const result = await adminService.createSoal({
         ujian_id: parseInt(examId as string),
         nomor_soal: nextNomorSoal,
         tipe_soal: tipeSoal === 'Gambar' ? 'gambar' : 'text',
@@ -203,11 +213,12 @@ export default function TambahSoalPage() {
         jawaban_benar: jawabanBenar.toUpperCase(), // Backend expects uppercase
       });
 
+      console.log('Created soal result:', result);
       alert('Soal berhasil ditambahkan');
       router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
     } catch (error) {
       console.error('Error adding soal:', error);
-      alert('Gagal menambahkan soal');
+      alert('Gagal menambahkan soal: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -255,7 +266,6 @@ export default function TambahSoalPage() {
                     >
                       <option value="Gambar">Gambar</option>
                       <option value="Teks">Teks</option>
-                      <option value="Video">Video</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>

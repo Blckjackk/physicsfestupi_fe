@@ -412,13 +412,16 @@ function QuestionCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  // Convert backend soal format to display format
+  // Get base URL for images
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  
+  // Convert backend soal format to display format with images
   const opsiList = [
-    { label: 'A', teks: question.opsi_a },
-    { label: 'B', teks: question.opsi_b },
-    { label: 'C', teks: question.opsi_c },
-    { label: 'D', teks: question.opsi_d },
-    { label: 'E', teks: question.opsi_e }
+    { label: 'A', teks: question.opsi_a, gambar: question.opsi_a_media },
+    { label: 'B', teks: question.opsi_b, gambar: question.opsi_b_media },
+    { label: 'C', teks: question.opsi_c, gambar: question.opsi_c_media },
+    { label: 'D', teks: question.opsi_d, gambar: question.opsi_d_media },
+    { label: 'E', teks: question.opsi_e, gambar: question.opsi_e_media }
   ];
 
   return (
@@ -455,6 +458,14 @@ function QuestionCard({
           text={question.pertanyaan} 
           className="font-inter text-base leading-relaxed text-gray-800"
         />
+        {/* Question Image */}
+        {question.media_soal && (
+          <img 
+            src={`${API_BASE_URL}/${question.media_soal}`} 
+            alt="Gambar soal"
+            className="mx-auto my-4 block max-h-[250px] max-w-[400px] rounded-lg object-contain border border-gray-200"
+          />
+        )}
       </div>
 
       {/* Answer Options */}
@@ -482,6 +493,14 @@ function QuestionCard({
                 text={opsi.teks} 
                 className="font-inter text-sm text-gray-800"
               />
+              {/* Option Image */}
+              {opsi.gambar && (
+                <img 
+                  src={`${API_BASE_URL}/${opsi.gambar}`} 
+                  alt={`Gambar opsi ${opsi.label}`}
+                  className="mt-3 block max-h-[150px] max-w-[250px] rounded-lg object-contain border border-gray-200"
+                />
+              )}
             </div>
           </div>
         ))}

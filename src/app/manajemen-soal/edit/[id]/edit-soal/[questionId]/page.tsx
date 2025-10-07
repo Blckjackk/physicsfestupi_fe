@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Image as ImageIcon, X } from 'lucide-react';
 import Sidebar from '@/components/dashboard-admin/Sidebar';
 import RichTextInput from '@/components/RichTextInput';
 import { adminService, type Soal } from '@/services/admin.service';
@@ -156,13 +156,41 @@ export default function EditSoalPage() {
           
           if (soal) {
             // Populate form with existing data from backend
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+            
             setTipeSoal(soal.tipe_soal === 'gambar' ? 'Gambar' : 'Teks');
             setSoal(soal.pertanyaan);
+            
+            // Load existing images as previews
+            if (soal.media_soal) {
+              setSoalGambarPreview(`${API_BASE_URL}/${soal.media_soal}`);
+            }
+            
             setJawabanA(soal.opsi_a);
+            if (soal.opsi_a_media) {
+              setGambarAPreview(`${API_BASE_URL}/${soal.opsi_a_media}`);
+            }
+            
             setJawabanB(soal.opsi_b);
+            if (soal.opsi_b_media) {
+              setGambarBPreview(`${API_BASE_URL}/${soal.opsi_b_media}`);
+            }
+            
             setJawabanC(soal.opsi_c);
+            if (soal.opsi_c_media) {
+              setGambarCPreview(`${API_BASE_URL}/${soal.opsi_c_media}`);
+            }
+            
             setJawabanD(soal.opsi_d);
+            if (soal.opsi_d_media) {
+              setGambarDPreview(`${API_BASE_URL}/${soal.opsi_d_media}`);
+            }
+            
             setJawabanE(soal.opsi_e);
+            if (soal.opsi_e_media) {
+              setGambarEPreview(`${API_BASE_URL}/${soal.opsi_e_media}`);
+            }
+            
             setJawabanBenar(soal.jawaban_benar.toUpperCase());
           } else {
             alert('Soal tidak ditemukan');
@@ -206,17 +234,23 @@ export default function EditSoalPage() {
         return;
       }
 
-      // Update soal via backend API
+      // Update soal via backend API with file upload support
       await adminService.updateSoal(parseInt(questionId), {
         ujian_id: parseInt(examId),
         nomor_soal: existingSoal.nomor_soal,
         tipe_soal: tipeSoal === 'Gambar' ? 'gambar' : 'text',
         pertanyaan: soal,
+        media_soal: soalGambar || existingSoal.media_soal || undefined,  // Keep existing if no new upload
         opsi_a: jawabanA,
+        opsi_a_media: gambarA || existingSoal.opsi_a_media || undefined,
         opsi_b: jawabanB,
+        opsi_b_media: gambarB || existingSoal.opsi_b_media || undefined,
         opsi_c: jawabanC,
+        opsi_c_media: gambarC || existingSoal.opsi_c_media || undefined,
         opsi_d: jawabanD,
+        opsi_d_media: gambarD || existingSoal.opsi_d_media || undefined,
         opsi_e: jawabanE,
+        opsi_e_media: gambarE || existingSoal.opsi_e_media || undefined,
         jawaban_benar: jawabanBenar.toUpperCase(), // Backend expects uppercase
       });
 
