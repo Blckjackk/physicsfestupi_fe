@@ -375,13 +375,13 @@ export default function HasilUjian() {
                                     ) : error ? (
                                         <TableRow><TableCell colSpan={9} className="h-24 text-center text-red-500">Error: {error}</TableCell></TableRow>
                                     ) : (
-                                        sortedAndFilteredData.map((row) => (
+                                        sortedAndFilteredData.map((row, index) => (
                                             <TableRow key={row.aktivitas_id} className='border-[#E4E4E4]'>
                                                 <TableCell><Checkbox
                                                     onCheckedChange={(checked) => handleSelectRow(row.aktivitas_id.toString(), checked as boolean)}
                                                     checked={selectedRows.includes(row.aktivitas_id.toString())}
                                                 /></TableCell>
-                                                <TableCell>{row.no}</TableCell>
+                                                <TableCell>{index+1}</TableCell>
                                                 <TableCell>{row.username}</TableCell>
                                                 <TableCell>{row.nama_ujian}</TableCell>
                                                 <TableCell>{row.mulai}</TableCell>

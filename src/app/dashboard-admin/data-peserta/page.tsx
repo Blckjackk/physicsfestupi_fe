@@ -230,7 +230,7 @@ export default function DashboardPage() {
                 status: 'Belum Login', // Sesuai dengan status awal dari API
             };
 
-            setPeserta(prevPeserta => [formattedNewPeserta, ...prevPeserta]);
+            setPeserta(prevPeserta => [...prevPeserta, formattedNewPeserta]);
             return true;
 
         } catch (error: any) {
