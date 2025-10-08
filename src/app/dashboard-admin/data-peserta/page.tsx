@@ -40,9 +40,9 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 
-import { TambahPeserta } from "./tambah/page";
-import { EditPeserta } from "./edit/page";
-import { HapusPeserta } from "./hapus/page";
+import TambahPeserta from "./tambah/TambahPeserta";
+import EditPeserta from "./edit/EditPeserta";
+import HapusPeserta from "./hapus/HapusPeserta";
 import Image from "next/image";
 
 type Checked = DropdownMenuCheckboxItemProps["checked"]

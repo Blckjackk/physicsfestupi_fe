@@ -16,24 +16,20 @@ import {
 } from "@/components/ui/dialog"
 import { Trash } from "lucide-react"
 
-interface HapusHasilUjianProps {
-    pesertaId: number;
-    ujianId: number;
-    onHapus: (pesertaId: number, ujianId: number) => Promise<boolean>;
+interface HapusPesertaProps {
+    pesertaId: string;
+    // Ubah onHapus agar mengembalikan Promise<boolean>
+    onHapus: (id: string) => Promise<boolean>;
 }
 
-export function HapusHasilUjian({ pesertaId, ujianId, onHapus }: HapusHasilUjianProps) {
+
+export default function HapusPeserta({ pesertaId, onHapus }: HapusPesertaProps) {
     const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-
-        // 2. Kirim kedua ID saat memanggil onHapus
-        const success = await onHapus(pesertaId, ujianId);
-
-        if (success) {
-            setIsConfirmOpen(false);
-        }
+        onHapus(pesertaId); // Beritahu parent untuk hapus data
+        setIsConfirmOpen(false); // Tutup dialog konfirmasi ini
     };
 
     return (
@@ -49,7 +45,7 @@ export function HapusHasilUjian({ pesertaId, ujianId, onHapus }: HapusHasilUjian
                             <div className="mt-2 text-center">Peringatan!</div>
                         </DialogTitle>
                         <DialogDescription className="text-base text-black font-medium">
-                            Apakah anda yakin ingin hapus hasil ujian peserta ini?
+                            Apakah anda yakin ingin menghapus peserta ini?
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="grid grid-cols-2 gap-4 mt-4">

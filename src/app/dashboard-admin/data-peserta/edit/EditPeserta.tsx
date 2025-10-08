@@ -39,7 +39,7 @@ interface UjianOption {
     nama_ujian: string;
 }
 
-export function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
+export default function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
     // 1. State untuk mengontrol kedua dialog
     const [isFormOpen, setIsFormOpen] = React.useState(false);
     const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);

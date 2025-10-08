@@ -9,11 +9,12 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { format } from "date-fns";
 
 interface DetailJawaban {
     peserta: { id: number; username: string; };
     ujian: { id: number; nama_ujian: string; };
-    aktivitas: { status: string; waktu_login: string; waktu_submit: string; durasi: string | null; };
+    aktivitas: { status: string; waktu_login: string; waktu_submit: string; durasi: number | null; };
     statistik: { total_soal: number; dijawab: number; kosong: number; benar: number; salah: number; nilai: number; };
     soal_jawaban: {
         nomor_soal: number;
@@ -35,7 +36,7 @@ const data_peserta_initial = [
 ];
 
 export default function DetailHasilUjianPage({ params }: { params: Promise<{ peserta_id: string; ujian_id: string }> }) {
-    const resolvedParams = use(params); 
+    const resolvedParams = use(params);
 
     const { peserta_id, ujian_id } = resolvedParams;
 
@@ -69,6 +70,43 @@ export default function DetailHasilUjianPage({ params }: { params: Promise<{ pes
 
         fetchDetail();
     }, [peserta_id, ujian_id]);
+
+    // Fungsi untuk mengubah format tanggal ISO ke dd/mm/yy HH:mm
+    const formatWaktu = (isoString: string | null) => {
+        if (!isoString) {
+            return '-'; // Kembalikan strip jika data tidak ada
+        }
+        try {
+            const tanggal = new Date(isoString);
+            return format(tanggal, 'dd/MM/yy HH:mm');
+        } catch (error) {
+            return 'Invalid Date'; // Tangani jika format tidak valid
+        }
+    };
+
+    // Fungsi untuk mengubah TOTAL MENIT menjadi format "X Jam Y Menit"
+    const formatDurasi = (totalMenit: number | null) => {
+        // 1. Tangani jika data tidak ada atau nol
+        if (!totalMenit || totalMenit <= 0) {
+            return '-';
+        }
+
+        // 2. Hitung jam dan sisa menit
+        const jam = Math.floor(totalMenit / 60);
+        const menit = totalMenit % 60;
+
+        // 3. Bangun string hasilnya
+        let hasil = '';
+        if (jam > 0) {
+            hasil += `${jam} Jam `;
+        }
+        if (menit > 0) {
+            hasil += `${menit} Menit`;
+        }
+
+        // Jika hasilnya kosong (misalnya durasi 0), kembalikan strip
+        return hasil.trim() || '-';
+    };
 
     if (isLoading) {
         return <LoadingSpinner />;
@@ -117,11 +155,11 @@ export default function DetailHasilUjianPage({ params }: { params: Promise<{ pes
                             </div>
                             <div className="col-span-2 mx-8 p-4">
                                 <p className="text-start text-black font-medium text-base">Waktu Mulai</p>
-                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{aktivitas.waktu_login}</p>
+                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{formatWaktu(aktivitas.waktu_login)}</p>
                             </div>
                             <div className="col-span-2 mx-8 p-4">
                                 <p className="text-start text-black font-medium text-base">Total Waktu</p>
-                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{aktivitas.durasi || '-'} Menit</p>
+                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{(formatDurasi(aktivitas.durasi)) || '-'}</p>
                             </div>
 
                             {/* Baris Ketiga: 2 Div (Masing-masing mengambil 3 dari 6 kolom) */}
@@ -131,7 +169,7 @@ export default function DetailHasilUjianPage({ params }: { params: Promise<{ pes
                             </div>
                             <div className="col-span-2 mx-8 p-4 mb-4">
                                 <p className="text-start text-black font-medium text-base">Waktu Selesai</p>
-                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{aktivitas.waktu_submit}</p>
+                                <p className="text-start text-black font-medium text-base rounded-lg border mt-3 p-2 shadow-md">{formatWaktu(aktivitas.waktu_submit)}</p>
                             </div>
                         </div>
                     </div>

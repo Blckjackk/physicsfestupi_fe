@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Link from "next/link";
-import { HapusHasilUjian } from "./hapus/page";
+import HapusHasilUjian from "./hapus/HapusHasilUjian";
 
 // const data_peserta_initial = [
 //     { id: '1', no: 1, username: 'asep123', nama_ujian: 'Ujian A', mulai: '01/10/2025 10:00:00', selesai: '01/10/2025 12:00:00', jumlah_soal: 100, terjawab: 100 },
@@ -66,6 +66,7 @@ export default function HasilUjian() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isSuccessHapusOpen, setIsSuccessHapusOpen] = React.useState(false);
+    const [isExportWarningOpen, setIsExportWarningOpen] = React.useState(false);
 
     // State buat nyimpen ID baris dari data yang terpilih (yang dicentang)
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -243,6 +244,11 @@ export default function HasilUjian() {
     };
 
     const handleExportExcel = () => {
+        // Gunakan `sortedAndFilteredData` agar pengecekan sesuai dengan apa yang ditampilkan di tabel
+        if (sortedAndFilteredData.length === 0) {
+            setIsExportWarningOpen(true);
+            return; // Hentikan fungsi di sini
+        }
         // 1. Dapatkan URL dasar API dari environment variable
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -381,7 +387,7 @@ export default function HasilUjian() {
                                                     onCheckedChange={(checked) => handleSelectRow(row.aktivitas_id.toString(), checked as boolean)}
                                                     checked={selectedRows.includes(row.aktivitas_id.toString())}
                                                 /></TableCell>
-                                                <TableCell>{index+1}</TableCell>
+                                                <TableCell>{index + 1}</TableCell>
                                                 <TableCell>{row.username}</TableCell>
                                                 <TableCell>{row.nama_ujian}</TableCell>
                                                 <TableCell>{row.mulai}</TableCell>
@@ -487,6 +493,31 @@ export default function HasilUjian() {
                         <DialogFooter className="grid grid-cols-1 gap-4">
                             <DialogClose asChild>
                                 <Button className="w-full text-white bg-[#749221]" variant="outline">
+                                    Tutup
+                                </Button>
+                            </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+                <Dialog open={isExportWarningOpen} onOpenChange={setIsExportWarningOpen}>
+                    <DialogContent className="font-heading bg-white sm:max-w-[425px]">
+                        <DialogHeader className="flex items-center justify-center">
+                            <DialogTitle className="flex flex-col items-center text-black text-xl font-semibold text-center">
+                                <Image
+                                    src="/images/gagal.png" // Ganti dengan gambar peringatan/gagal jika ada
+                                    alt="Logo Gagal"
+                                    width={80}
+                                    height={80}
+                                />
+                                <div className="mt-2">Peringatan</div>
+                            </DialogTitle>
+                            <DialogDescription className="text-base text-black font-medium">
+                                Tidak ada data untuk di-export.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="grid grid-cols-1 gap-4">
+                            <DialogClose asChild>
+                                <Button className="w-full text-white bg-[#CD1F1F]" variant="outline">
                                     Tutup
                                 </Button>
                             </DialogClose>

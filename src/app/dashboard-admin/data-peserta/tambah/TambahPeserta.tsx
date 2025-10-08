@@ -36,7 +36,7 @@ interface TambahPesertaProps {
   onTambah: (data: { username: string; password: string; ujian_id: number; }) => Promise<boolean>;
 }
 
-export function TambahPeserta({ onTambah }: TambahPesertaProps) {
+export default function TambahPeserta({ onTambah }: TambahPesertaProps) {
   // 1. State untuk mengontrol kedua dialog
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = React.useState(false);
