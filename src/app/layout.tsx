@@ -15,8 +15,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Physics Fest UPI 2025 — Login",
-  description: "Portal login peserta Physics Fest UPI 2025",
+  title: "Physics Fest UPI 2025",
+  description: "Physics Fest UPI 2025",
 };
 
 export default function RootLayout({

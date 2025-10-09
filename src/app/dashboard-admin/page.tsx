@@ -20,6 +20,8 @@ import StatistikPeserta from '@/components/dashboard-admin/StatistikPeserta';
 import React from 'react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { Metadata } from 'next';
+
 
 // Struct untuk Ujian
 interface Ujian {
@@ -49,7 +51,7 @@ export default function DashboardPage() {
     const [ujianData, setUjianData] = React.useState<Ujian[]>([]); // Beri tahu TypeScript ini adalah array of Ujian
     const [isLoading, setIsLoading] = React.useState(true); // Mulai dengan loading
     const [error, setError] = React.useState<string | null>(null);
-    
+
     // Auth guard - redirect if not admin (HARUS SETELAH SEMUA STATE HOOKS)
     const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
 
