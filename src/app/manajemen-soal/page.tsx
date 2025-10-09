@@ -255,18 +255,18 @@ export default function ExamManagementPage() {
   const isAllSelected = paginatedExams.length > 0 && selectedIds.size === paginatedExams.length;
 
   // Show loading spinner while checking authentication
-  // if (authLoading) {
-  //   return (
-  //     <div className="flex min-h-screen items-center justify-center">
-  //       <LoadingSpinner size="lg" />
-  //     </div>
-  //   );
-  // }
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
-  // // This component will only render if user is authenticated as admin
-  // if (!isAuthenticated) {
-  //   return null;
-  // }
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
