@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Image from 'next/image';
 
 import Sidebar from '@/components/dashboard-admin/Sidebar';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -61,10 +63,14 @@ interface HasilUjian {
 }
 
 export default function HasilUjian() {
+    // Auth guard - redirect if not admin
+    const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+
     // const [peserta, setPeserta] = React.useState(data_peserta_initial);
     const [hasilUjian, setHasilUjian] = useState<HasilUjian[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
     const [isSuccessHapusOpen, setIsSuccessHapusOpen] = React.useState(false);
     const [isExportWarningOpen, setIsExportWarningOpen] = React.useState(false);
 
@@ -258,6 +264,20 @@ export default function HasilUjian() {
         // 3. Buka URL tersebut di tab baru, browser akan otomatis men-downloadnya
         window.open(exportUrl, '_blank');
     };
+
+    // Show loading spinner while checking authentication
+    if (authLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
+
+    // This component will only render if user is authenticated as admin
+    if (!isAuthenticated) {
+        return null;
+    }
 
     return (
         <div className="flex min-h-screen bg-gray-100">

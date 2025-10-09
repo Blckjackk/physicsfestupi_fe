@@ -21,6 +21,8 @@ import Sidebar from '@/components/dashboard-admin/Sidebar';
 import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 import { adminService, type Ujian } from '@/services/admin.service';
 import { ApiError } from '@/lib/api';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { 
   Search, 
   Plus, 
@@ -55,7 +57,7 @@ export default function ExamManagementPage() {
   const showExamCountCard = true;
   const router = useRouter();
 
-  // State management
+  // State management - HARUS DI ATAS AUTH GUARD
   const [exams, setExams] = useState<Ujian[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +65,23 @@ export default function ExamManagementPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ show: false, type: 'success', title: '', message: '' });
+
+  // Auth guard - redirect if not admin (HARUS SETELAH SEMUA STATE)
+  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
   
   // Alert modal states for single delete confirmation
   const [showAlert, setShowAlert] = useState(false);

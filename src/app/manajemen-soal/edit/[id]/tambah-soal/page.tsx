@@ -16,8 +16,12 @@ import Sidebar from '@/components/dashboard-admin/Sidebar';
 import RichTextInput from '@/components/RichTextInput';
 import { adminService } from '@/services/admin.service';
 import { ArrowLeft, ChevronDown, Image as ImageIcon, X } from 'lucide-react';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 
 export default function TambahSoalPage() {
+  // SEMUA HOOKS HARUS DI ATAS DULU - TIDAK BOLEH ADA CONDITIONAL RETURN SEBELUMNYA
   const router = useRouter();
   const params = useParams();
   const examId = params.id;
@@ -26,26 +30,6 @@ export default function TambahSoalPage() {
   const [examName, setExamName] = useState('');
   const [nextNomorSoal, setNextNomorSoal] = useState(1);
   
-  useEffect(() => {
-    loadExamData();
-  }, [examId]);
-
-  const loadExamData = async () => {
-    try {
-      const ujianList = await adminService.getUjian();
-      const ujian = ujianList.find(u => u.id === parseInt(examId as string));
-      if (ujian) {
-        setExamName(ujian.nama_ujian);
-      }
-
-      // Get existing soal to determine next nomor_soal
-      const soalList = await adminService.getSoalByUjian(parseInt(examId as string));
-      setNextNomorSoal(soalList.length + 1);
-    } catch (error) {
-      console.error('Failed to load exam data:', error);
-    }
-  };
-
   // Form state - Support File upload
   const [tipeSoal, setTipeSoal] = useState('Gambar');
   const [soal, setSoal] = useState('');
@@ -67,6 +51,38 @@ export default function TambahSoalPage() {
   const [gambarE, setGambarE] = useState<File | null>(null);
   const [gambarEPreview, setGambarEPreview] = useState<string>('');
   const [jawabanBenar, setJawabanBenar] = useState('D');
+
+  // Alert modal state
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: 'info' as AlertType,
+    title: '',
+    message: '',
+    confirmAction: null as (() => void) | null,
+  });
+  
+  // Auth guard - redirect if not admin (SETELAH SEMUA STATE HOOKS)
+  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+  
+  useEffect(() => {
+    loadExamData();
+  }, [examId]);
+
+  const loadExamData = async () => {
+    try {
+      const ujianList = await adminService.getUjian();
+      const ujian = ujianList.find(u => u.id === parseInt(examId as string));
+      if (ujian) {
+        setExamName(ujian.nama_ujian);
+      }
+
+      // Get existing soal to determine next nomor_soal
+      const soalList = await adminService.getSoalByUjian(parseInt(examId as string));
+      setNextNomorSoal(soalList.length + 1);
+    } catch (error) {
+      console.error('Failed to load exam data:', error);
+    }
+  };
 
   // Helper function to insert formatting tags into textarea
   const insertFormatting = (currentValue: string, setValue: (val: string) => void, before: string, after: string) => {
@@ -173,12 +189,24 @@ export default function TambahSoalPage() {
     e.preventDefault();
     
     if (!soal.trim()) {
-      alert('Soal harus diisi');
+      setAlertConfig({
+        type: 'warning',
+        title: 'Peringatan',
+        message: 'Soal harus diisi',
+        confirmAction: null,
+      });
+      setShowAlert(true);
       return;
     }
 
     if (!jawabanA || !jawabanB || !jawabanC || !jawabanD || !jawabanE) {
-      alert('Semua jawaban (A-E) harus diisi');
+      setAlertConfig({
+        type: 'warning',
+        title: 'Peringatan',
+        message: 'Semua jawaban (A-E) harus diisi',
+        confirmAction: null,
+      });
+      setShowAlert(true);
       return;
     }
 
@@ -214,13 +242,44 @@ export default function TambahSoalPage() {
       });
 
       console.log('Created soal result:', result);
-      alert('Soal berhasil ditambahkan');
-      router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+      
+      // Show success alert
+      setAlertConfig({
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Soal berhasil ditambahkan',
+        confirmAction: () => {
+          router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+        },
+      });
+      setShowAlert(true);
     } catch (error) {
       console.error('Error adding soal:', error);
-      alert('Gagal menambahkan soal: ' + (error.response?.data?.message || error.message));
+      
+      // Show error alert
+      setAlertConfig({
+        type: 'error',
+        title: 'Gagal',
+        message: 'Gagal menambahkan soal: ' + (error.response?.data?.message || error.message),
+        confirmAction: null,
+      });
+      setShowAlert(true);
     }
   };
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -551,6 +610,22 @@ export default function TambahSoalPage() {
           </form>
         </div>
       </main>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={() => setShowAlert(false)}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        primaryButtonText="OK"
+        onPrimaryClick={() => {
+          setShowAlert(false);
+          if (alertConfig.confirmAction) {
+            alertConfig.confirmAction();
+          }
+        }}
+      />
     </div>
   );
 }

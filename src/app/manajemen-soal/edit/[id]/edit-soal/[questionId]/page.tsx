@@ -8,13 +8,32 @@ import Sidebar from '@/components/dashboard-admin/Sidebar';
 import RichTextInput from '@/components/RichTextInput';
 import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 import { adminService, type Soal } from '@/services/admin.service';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export default function EditSoalPage() {
+  // Auth guard - redirect if not admin
+  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+  
   const router = useRouter();
   const params = useParams();
   const examId = params.id as string;
   const questionId = params.questionId as string;
   const [examName, setExamName] = useState('');
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
   
   // Form States
   const [tipeSoal, setTipeSoal] = useState('Gambar');

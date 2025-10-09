@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { format } from "date-fns";
+import { useAdminGuard } from "@/hooks/useAuthGuard";
 
 interface DetailJawaban {
     peserta: { id: number; username: string; };
@@ -36,9 +37,11 @@ const data_peserta_initial = [
 ];
 
 export default function DetailHasilUjianPage({ params }: { params: Promise<{ peserta_id: string; ujian_id: string }> }) {
+    const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
     const resolvedParams = use(params);
 
     const { peserta_id, ujian_id } = resolvedParams;
+
 
     const [detailData, setDetailData] = useState<DetailJawaban | null>(null);
     const [isLoading, setIsLoading] = useState(true);
