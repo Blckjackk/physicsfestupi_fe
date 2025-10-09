@@ -43,12 +43,17 @@ export default function LoginAdminPage() {
 
   // Check if already authenticated
   useEffect(() => {
-    if (authService.isAuthenticated()) {
-      const user = authService.getAuthUser();
-      if (user?.role === 'admin' || user?.role === 'superadmin') {
-        router.push('/dashboard-admin');
+    // Add a small delay to prevent race conditions with logout
+    const timeoutId = setTimeout(() => {
+      if (authService.isAuthenticated()) {
+        const user = authService.getAuthUser();
+        if (user?.role === 'admin' || user?.role === 'superadmin') {
+          router.push('/dashboard-admin');
+        }
       }
-    }
+    }, 200);
+
+    return () => clearTimeout(timeoutId);
   }, [router]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

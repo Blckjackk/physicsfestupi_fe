@@ -65,8 +65,19 @@ export const authService = {
   logout: (): void => {
     tokenManager.removeToken();
     if (typeof window !== 'undefined') {
+      // Clear all possible localStorage items
       localStorage.removeItem('user');
       localStorage.removeItem('ujian');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('exam_timer_state');
+      
+      // Clear all sessionStorage as well
+      sessionStorage.clear();
+      
+      // Clear any cookies that might exist
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
     }
   },
 
@@ -74,7 +85,11 @@ export const authService = {
    * Check if user is authenticated
    */
   isAuthenticated: (): boolean => {
-    return tokenManager.getToken() !== null;
+    const token = tokenManager.getToken();
+    const user = authService.getAuthUser();
+    
+    // Both token and user must exist
+    return token !== null && user !== null;
   },
 
   /**
