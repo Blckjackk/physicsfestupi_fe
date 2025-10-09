@@ -44,27 +44,14 @@ interface StatistikData {
 }
 
 export default function DashboardPage() {
-    // Auth guard - redirect if not admin
-    const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
-    
+    // SEMUA HOOKS HARUS DI ATAS - TIDAK BOLEH ADA CONDITIONAL RETURN SEBELUMNYA
     const [statistik, setStatistik] = React.useState<StatistikData | null>(null);
     const [ujianData, setUjianData] = React.useState<Ujian[]>([]); // Beri tahu TypeScript ini adalah array of Ujian
     const [isLoading, setIsLoading] = React.useState(true); // Mulai dengan loading
     const [error, setError] = React.useState<string | null>(null);
-
-    // Show loading spinner while checking authentication
-    if (authLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
-    }
-
-    // This component will only render if user is authenticated as admin
-    if (!isAuthenticated) {
-        return null;
-    }
+    
+    // Auth guard - redirect if not admin (HARUS SETELAH SEMUA STATE HOOKS)
+    const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
 
     React.useEffect(() => {
         const fetchData = async () => {
@@ -120,6 +107,20 @@ export default function DashboardPage() {
     }
 
     // Pengecekan error
+    // Show loading spinner while checking authentication
+    if (authLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
+
+    // This component will only render if user is authenticated as admin
+    if (!isAuthenticated) {
+        return null;
+    }
+
     if (error) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-gray-100">

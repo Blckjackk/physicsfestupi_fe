@@ -53,12 +53,21 @@ type AlertState = {
 const ITEMS_PER_PAGE = 7;
 
 export default function ExamManagementPage() {
-  // Auth guard - redirect if not admin
-  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
-  
   // CONFIGURATION: Toggle this to show/hide exam count card
   const showExamCountCard = true;
   const router = useRouter();
+
+  // State management - HARUS DI ATAS AUTH GUARD
+  const [exams, setExams] = useState<Ujian[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [alert, setAlert] = useState<AlertState>({ show: false, type: 'success', title: '', message: '' });
+
+  // Auth guard - redirect if not admin (HARUS SETELAH SEMUA STATE)
+  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
 
   // Show loading spinner while checking authentication
   if (authLoading) {
@@ -73,15 +82,6 @@ export default function ExamManagementPage() {
   if (!isAuthenticated) {
     return null;
   }
-
-  // State management
-  const [exams, setExams] = useState<Ujian[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [alert, setAlert] = useState<AlertState>({ show: false, type: 'success', title: '', message: '' });
   
   // Alert modal states for single delete confirmation
   const [showAlert, setShowAlert] = useState(false);

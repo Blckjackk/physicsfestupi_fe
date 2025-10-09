@@ -21,51 +21,15 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 
 export default function TambahSoalPage() {
-  // Auth guard - redirect if not admin
-  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
-  
+  // SEMUA HOOKS HARUS DI ATAS DULU - TIDAK BOLEH ADA CONDITIONAL RETURN SEBELUMNYA
   const router = useRouter();
   const params = useParams();
   const examId = params.id;
-
-  // Show loading spinner while checking authentication
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  // This component will only render if user is authenticated as admin
-  if (!isAuthenticated) {
-    return null;
-  }
 
   // Load exam name from backend
   const [examName, setExamName] = useState('');
   const [nextNomorSoal, setNextNomorSoal] = useState(1);
   
-  useEffect(() => {
-    loadExamData();
-  }, [examId]);
-
-  const loadExamData = async () => {
-    try {
-      const ujianList = await adminService.getUjian();
-      const ujian = ujianList.find(u => u.id === parseInt(examId as string));
-      if (ujian) {
-        setExamName(ujian.nama_ujian);
-      }
-
-      // Get existing soal to determine next nomor_soal
-      const soalList = await adminService.getSoalByUjian(parseInt(examId as string));
-      setNextNomorSoal(soalList.length + 1);
-    } catch (error) {
-      console.error('Failed to load exam data:', error);
-    }
-  };
-
   // Form state - Support File upload
   const [tipeSoal, setTipeSoal] = useState('Gambar');
   const [soal, setSoal] = useState('');
@@ -96,6 +60,29 @@ export default function TambahSoalPage() {
     message: '',
     confirmAction: null as (() => void) | null,
   });
+  
+  // Auth guard - redirect if not admin (SETELAH SEMUA STATE HOOKS)
+  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+  
+  useEffect(() => {
+    loadExamData();
+  }, [examId]);
+
+  const loadExamData = async () => {
+    try {
+      const ujianList = await adminService.getUjian();
+      const ujian = ujianList.find(u => u.id === parseInt(examId as string));
+      if (ujian) {
+        setExamName(ujian.nama_ujian);
+      }
+
+      // Get existing soal to determine next nomor_soal
+      const soalList = await adminService.getSoalByUjian(parseInt(examId as string));
+      setNextNomorSoal(soalList.length + 1);
+    } catch (error) {
+      console.error('Failed to load exam data:', error);
+    }
+  };
 
   // Helper function to insert formatting tags into textarea
   const insertFormatting = (currentValue: string, setValue: (val: string) => void, before: string, after: string) => {
@@ -279,6 +266,20 @@ export default function TambahSoalPage() {
       setShowAlert(true);
     }
   };
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
