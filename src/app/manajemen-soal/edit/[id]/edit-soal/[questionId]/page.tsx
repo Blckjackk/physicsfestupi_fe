@@ -20,20 +20,6 @@ export default function EditSoalPage() {
   const examId = params.id as string;
   const questionId = params.questionId as string;
   const [examName, setExamName] = useState('');
-
-  // Show loading spinner while checking authentication
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  // This component will only render if user is authenticated as admin
-  if (!isAuthenticated) {
-    return null;
-  }
   
   // Form States
   const [tipeSoal, setTipeSoal] = useState('Gambar');
@@ -325,6 +311,20 @@ export default function EditSoalPage() {
       reader.readAsDataURL(file);
     }
   };
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (isLoading) {
     return (

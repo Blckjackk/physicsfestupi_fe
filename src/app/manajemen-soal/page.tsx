@@ -23,11 +23,11 @@ import { adminService, type Ujian } from '@/services/admin.service';
 import { ApiError } from '@/lib/api';
 import { useAdminGuard } from '@/hooks/useAuthGuard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { 
-  Search, 
-  Plus, 
-  Pencil, 
-  Trash, 
+import {
+  Search,
+  Plus,
+  Pencil,
+  Trash,
   X,
   ChevronLeft,
   ChevronRight,
@@ -69,20 +69,6 @@ export default function ExamManagementPage() {
   // Auth guard - redirect if not admin (HARUS SETELAH SEMUA STATE)
   const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
 
-  // Show loading spinner while checking authentication
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  // This component will only render if user is authenticated as admin
-  if (!isAuthenticated) {
-    return null;
-  }
-  
   // Alert modal states for single delete confirmation
   const [showAlert, setShowAlert] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
@@ -114,7 +100,7 @@ export default function ExamManagementPage() {
 
   // Filtered and paginated data
   const filteredExams = useMemo(() => {
-    return exams.filter(exam => 
+    return exams.filter(exam =>
       exam.nama_ujian.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [exams, searchQuery]);
@@ -159,7 +145,7 @@ export default function ExamManagementPage() {
           console.error(`Failed to delete ujian ${id}:`, err);
         }
       }
-      
+
       if (deletedCount > 0) {
         loadExams();
         setSelectedIds(new Set());
@@ -237,7 +223,7 @@ export default function ExamManagementPage() {
         waktu_mulai_pengerjaan: formData.waktu_mulai_pengerjaan,
         waktu_akhir_pengerjaan: formData.waktu_akhir_pengerjaan
       });
-      
+
       loadExams();
       setShowAddModal(false);
       setAlert({
@@ -267,6 +253,20 @@ export default function ExamManagementPage() {
   };
 
   const isAllSelected = paginatedExams.length > 0 && selectedIds.size === paginatedExams.length;
+
+  // Show loading spinner while checking authentication
+  // if (authLoading) {
+  //   return (
+  //     <div className="flex min-h-screen items-center justify-center">
+  //       <LoadingSpinner size="lg" />
+  //     </div>
+  //   );
+  // }
+
+  // // This component will only render if user is authenticated as admin
+  // if (!isAuthenticated) {
+  //   return null;
+  // }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -298,11 +298,11 @@ export default function ExamManagementPage() {
           <div className="rounded-[28px] border border-[#524D59] bg-white p-8 shadow-md">
             {/* Search Bar and Delete Button */}
             <div className="mb-6 flex items-center gap-4">
-              <SearchBar 
-                value={searchQuery} 
-                onChange={setSearchQuery} 
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
               />
-              <DeleteSelectedButton 
+              <DeleteSelectedButton
                 count={selectedIds.size}
                 onClick={() => setShowDeleteModal(true)}
                 disabled={selectedIds.size === 0}
@@ -315,7 +315,7 @@ export default function ExamManagementPage() {
                 <thead>
                   <tr className="border-b border-[#E4E4E4]">
                     <th className="py-3.5 text-center">
-                      <Checkbox 
+                      <Checkbox
                         checked={isAllSelected}
                         onChange={handleSelectAll}
                         aria-label="Select all exams"
@@ -333,7 +333,7 @@ export default function ExamManagementPage() {
                 </thead>
                 <tbody>
                   {paginatedExams.map((exam, index) => (
-                    <ExamTableRow 
+                    <ExamTableRow
                       key={exam.id}
                       exam={exam}
                       number={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
@@ -349,7 +349,7 @@ export default function ExamManagementPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <Pagination 
+              <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
@@ -361,7 +361,7 @@ export default function ExamManagementPage() {
 
       {/* Modals */}
       {showDeleteModal && (
-        <DeleteConfirmModal 
+        <DeleteConfirmModal
           count={selectedIds.size}
           onConfirm={handleDeleteSelected}
           onCancel={() => setShowDeleteModal(false)}
@@ -369,7 +369,7 @@ export default function ExamManagementPage() {
       )}
 
       {/* Add Exam Modal */}
-      <ExamFormModal 
+      <ExamFormModal
         show={showAddModal}
         mode="add"
         onClose={() => setShowAddModal(false)}
@@ -377,7 +377,7 @@ export default function ExamManagementPage() {
       />
 
       {/* Alert Notification */}
-      <AlertNotification 
+      <AlertNotification
         show={alert.show}
         type={alert.type}
         title={alert.title}
@@ -416,7 +416,7 @@ function ExamCountCard({ count }: { count: number }) {
         <p className="font-poppins text-5xl font-bold text-[#41366E]">{count}</p>
       </div>
       <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[12px] bg-[#41366E]">
-        <Image 
+        <Image
           src="/images/user-friends.png"
           alt="Jumlah Ujian Icon"
           width={64}
@@ -450,11 +450,10 @@ function DeleteSelectedButton({ count, onClick, disabled }: { count: number; onC
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-[10px] px-5 py-2 font-heading text-base font-medium transition-all ${
-        disabled
-          ? 'cursor-not-allowed bg-gray-200 text-gray-400'
-          : 'bg-[#CD1F1F] text-white hover:bg-[#b01919]'
-      }`}
+      className={`rounded-[10px] px-5 py-2 font-heading text-base font-medium transition-all ${disabled
+        ? 'cursor-not-allowed bg-gray-200 text-gray-400'
+        : 'bg-[#CD1F1F] text-white hover:bg-[#b01919]'
+        }`}
     >
       Hapus Pilih ({count})
     </button>
@@ -481,11 +480,10 @@ function Checkbox({ checked, onChange, ariaLabel }: { checked: boolean; onChange
       aria-checked={checked}
       aria-label={ariaLabel}
       onClick={onChange}
-      className={`flex h-4 w-4 items-center justify-center rounded-sm border transition-all ${
-        checked
-          ? 'border-[#41366E] bg-[#41366E]'
-          : 'border-input bg-background hover:border-[#41366E]'
-      }`}
+      className={`flex h-4 w-4 items-center justify-center rounded-sm border transition-all ${checked
+        ? 'border-[#41366E] bg-[#41366E]'
+        : 'border-input bg-background hover:border-[#41366E]'
+        }`}
     >
       {checked && (
         <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -496,18 +494,18 @@ function Checkbox({ checked, onChange, ariaLabel }: { checked: boolean; onChange
   );
 }
 
-function ExamTableRow({ 
-  exam, 
-  number, 
-  selected, 
-  onSelect, 
+function ExamTableRow({
+  exam,
+  number,
+  selected,
+  onSelect,
   onEdit,
-  onDelete 
-}: { 
-  exam: Ujian; 
-  number: number; 
-  selected: boolean; 
-  onSelect: () => void; 
+  onDelete
+}: {
+  exam: Ujian;
+  number: number;
+  selected: boolean;
+  onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -516,9 +514,9 @@ function ExamTableRow({
     if (!dateString) return '-';
     try {
       const date = new Date(dateString);
-      return date.toLocaleString('id-ID', { 
-        day: '2-digit', 
-        month: '2-digit', 
+      return date.toLocaleString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
@@ -542,14 +540,14 @@ function ExamTableRow({
       <td className="px-4 py-3.5 text-center font-inter text-sm text-black">{exam.jumlah_soal ?? 0}</td>
       <td className="px-4 py-3.5 text-center">
         <div className="flex items-center justify-center gap-2">
-          <Pencil 
-            size={18} 
+          <Pencil
+            size={18}
             onClick={onEdit}
             className="inline cursor-pointer hover:text-[#41366E] transition-colors"
             aria-label="Edit exam"
           />
-          <Trash 
-            size={18} 
+          <Trash
+            size={18}
             onClick={onDelete}
             className="inline cursor-pointer hover:text-red-600 transition-colors"
             aria-label="Delete exam"
@@ -655,13 +653,13 @@ function AddExamModal({ onClose }: { onClose: () => void }) {
 }
 
 // ExamFormModal Component (Add Only - Edit uses separate page)
-function ExamFormModal({ 
-  show, 
+function ExamFormModal({
+  show,
   mode,
   onClose,
-  onSubmit 
-}: { 
-  show: boolean; 
+  onSubmit
+}: {
+  show: boolean;
   mode: 'add';
   onClose: () => void;
   onSubmit: (data: ExamForm) => void;
@@ -689,7 +687,7 @@ function ExamFormModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!formData.nama_ujian.trim()) {
       alert('Nama ujian harus diisi');
@@ -708,11 +706,11 @@ function ExamFormModal({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div 
+      <div
         className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -732,7 +730,7 @@ function ExamFormModal({
         <p className="mb-6 font-inter text-sm text-gray-600">
           Silahkan Isi Data Ujian
         </p>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Nama Ujian */}
           <div>
@@ -814,14 +812,14 @@ function ExamFormModal({
 }
 
 // AlertNotification Component
-function AlertNotification({ 
-  show, 
+function AlertNotification({
+  show,
   type,
   title,
   message,
-  onClose 
-}: { 
-  show: boolean; 
+  onClose
+}: {
+  show: boolean;
   type: 'success' | 'error';
   title: string;
   message: string;
@@ -847,11 +845,11 @@ function AlertNotification({
   const { iconBgColor, iconBorderColor, buttonBg, buttonHover } = config[type];
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div 
+      <div
         className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >

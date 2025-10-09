@@ -34,20 +34,6 @@ export default function EditExamPage() {
   const searchParams = useSearchParams();
   const examId = params.id as string;
 
-  // Show loading spinner while checking authentication
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  // This component will only render if user is authenticated as admin
-  if (!isAuthenticated) {
-    return null;
-  }
-
   const [ujian, setUjian] = useState<Ujian | null>(null);
   const [jumlahSoal, setJumlahSoal] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -195,6 +181,20 @@ export default function EditExamPage() {
         </main>
       </div>
     );
+  }
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
