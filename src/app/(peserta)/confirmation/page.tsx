@@ -4,9 +4,22 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'next/navigation';
 import Image from 'next/image';
+import authService from '@/services/auth.service';
 
 export default function ConfirmationPage() {
   const router = useRouter();
+
+  // Check authentication
+  if (!authService.isAuthenticated()) {
+    router.push('/login');
+    return;
+  }
+
+  const currentUser = authService.getAuthUser();
+  if (!currentUser || currentUser.role !== 'peserta') {
+    router.push('/login');
+    return;
+  }
 
   const handleFinish = () => {
     // Set flag for fresh login requirement

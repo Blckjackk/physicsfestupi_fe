@@ -115,7 +115,6 @@ export default function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
         }
 
         const success = await onEdit(peserta.id, formData);
-        // console.log("Data yang akan dikirim:", formData);
 
 
         if (success) {

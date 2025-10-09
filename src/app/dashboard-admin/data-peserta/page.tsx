@@ -218,8 +218,6 @@ export default function DashboardPage() {
                 throw new Error(result.message || 'Gagal menambahkan peserta.');
             }
 
-            // console.log('Success Response Body:', result);
-
             // Jika berhasil, tambahkan data baru dari server ke state 'peserta'
             // Ini lebih baik daripada menambah data mentah dari form
             const newPesertaFromServer = result.data.peserta;
@@ -239,8 +237,6 @@ export default function DashboardPage() {
             return true;
 
         } catch (error: any) {
-            // console.error('Error:', error);
-            // alert(`Gagal: ${error.message}`);
             return false;
         }
     };
@@ -253,10 +249,7 @@ export default function DashboardPage() {
                 delete payload.password;
             }
 
-            console.log('Payload to be sent:', payload);
-
             const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-            console.log(payload);
             const response = await fetch(`${apiBaseUrl}/admin/peserta/${pesertaId}`, {
                 method: 'PUT', // Gunakan method PUT
                 headers: {
@@ -299,8 +292,6 @@ export default function DashboardPage() {
             return true; // Beri tahu child bahwa proses sukses
 
         } catch (error: any) {
-            // console.error('Error:', error);
-            // alert(`Gagal: ${error.message}`);
             return false; // Beri tahu child bahwa proses gagal
         }
     };
@@ -330,7 +321,6 @@ export default function DashboardPage() {
             return true;
 
         } catch (error: any) {
-            console.error('Error:', error);
             alert(`Gagal: ${error.message}`);
             return false;
         }
