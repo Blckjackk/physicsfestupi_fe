@@ -16,6 +16,8 @@ import FormattedText from '@/components/FormattedText';
 import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 import { adminService, type Ujian, type Soal } from '@/services/admin.service';
 import { ArrowLeft, Pencil, Trash, Plus } from 'lucide-react';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 type ExamForm = {
   nama: string;
@@ -24,10 +26,27 @@ type ExamForm = {
 };
 
 export default function EditExamPage() {
+  // Auth guard - redirect if not admin
+  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+  
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const examId = params.id as string;
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const [ujian, setUjian] = useState<Ujian | null>(null);
   const [jumlahSoal, setJumlahSoal] = useState<number>(0);

@@ -19,6 +19,7 @@ import {
 import StatistikPeserta from '@/components/dashboard-admin/StatistikPeserta';
 import React from 'react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
 
 // Struct untuk Ujian
 interface Ujian {
@@ -43,10 +44,27 @@ interface StatistikData {
 }
 
 export default function DashboardPage() {
+    // Auth guard - redirect if not admin
+    const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+    
     const [statistik, setStatistik] = React.useState<StatistikData | null>(null);
     const [ujianData, setUjianData] = React.useState<Ujian[]>([]); // Beri tahu TypeScript ini adalah array of Ujian
     const [isLoading, setIsLoading] = React.useState(true); // Mulai dengan loading
     const [error, setError] = React.useState<string | null>(null);
+
+    // Show loading spinner while checking authentication
+    if (authLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
+
+    // This component will only render if user is authenticated as admin
+    if (!isAuthenticated) {
+        return null;
+    }
 
     React.useEffect(() => {
         const fetchData = async () => {

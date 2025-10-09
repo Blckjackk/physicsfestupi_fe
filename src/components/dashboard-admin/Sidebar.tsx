@@ -4,11 +4,22 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Users, FileText, ClipboardCheck, LogOut, ChartColumn, BookText, DoorClosed, DoorOpen } from 'lucide-react';
+import { authService } from '@/services/auth.service';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Clear authentication data
+    authService.logout();
+    
+    // Redirect to admin login page
+    router.push('/login-admin');
+  };
+
   return (
     <aside className="w-[314px] bg-[#ffffff] p-4 flex flex-col">
 
@@ -83,13 +94,13 @@ export default function Sidebar() {
           <ClipboardCheck size={20} />
           <span>Hasil Ujian</span>
         </Link>
-        <Link
-          href="/login-admin"
-          className="relative flex text-lg font-heading font-semibold text-[#41366E] items-center gap-3 hover:bg-red-600 hover:text-white py-2 px-3 rounded-[10px] transition-colors"
+        <button
+          onClick={handleLogout}
+          className="relative flex text-lg font-heading font-semibold text-[#41366E] items-center gap-3 hover:bg-red-600 hover:text-white py-2 px-3 rounded-[10px] transition-colors w-full text-left"
         >
           <DoorOpen size={20} />
           <span>Log Out</span>
-        </Link>
+        </button>
       </nav>
     </aside >
   );

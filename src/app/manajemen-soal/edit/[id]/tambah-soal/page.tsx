@@ -16,11 +16,31 @@ import Sidebar from '@/components/dashboard-admin/Sidebar';
 import RichTextInput from '@/components/RichTextInput';
 import { adminService } from '@/services/admin.service';
 import { ArrowLeft, ChevronDown, Image as ImageIcon, X } from 'lucide-react';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 
 export default function TambahSoalPage() {
+  // Auth guard - redirect if not admin
+  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+  
   const router = useRouter();
   const params = useParams();
   const examId = params.id;
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
 
   // Load exam name from backend
   const [examName, setExamName] = useState('');
@@ -67,6 +87,15 @@ export default function TambahSoalPage() {
   const [gambarE, setGambarE] = useState<File | null>(null);
   const [gambarEPreview, setGambarEPreview] = useState<string>('');
   const [jawabanBenar, setJawabanBenar] = useState('D');
+
+  // Alert modal state
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: 'info' as AlertType,
+    title: '',
+    message: '',
+    confirmAction: null as (() => void) | null,
+  });
 
   // Helper function to insert formatting tags into textarea
   const insertFormatting = (currentValue: string, setValue: (val: string) => void, before: string, after: string) => {
@@ -173,12 +202,24 @@ export default function TambahSoalPage() {
     e.preventDefault();
     
     if (!soal.trim()) {
-      alert('Soal harus diisi');
+      setAlertConfig({
+        type: 'warning',
+        title: 'Peringatan',
+        message: 'Soal harus diisi',
+        confirmAction: null,
+      });
+      setShowAlert(true);
       return;
     }
 
     if (!jawabanA || !jawabanB || !jawabanC || !jawabanD || !jawabanE) {
-      alert('Semua jawaban (A-E) harus diisi');
+      setAlertConfig({
+        type: 'warning',
+        title: 'Peringatan',
+        message: 'Semua jawaban (A-E) harus diisi',
+        confirmAction: null,
+      });
+      setShowAlert(true);
       return;
     }
 
@@ -214,11 +255,28 @@ export default function TambahSoalPage() {
       });
 
       console.log('Created soal result:', result);
-      alert('Soal berhasil ditambahkan');
-      router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+      
+      // Show success alert
+      setAlertConfig({
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Soal berhasil ditambahkan',
+        confirmAction: () => {
+          router.push(`/manajemen-soal/edit/${examId}?tab=soal`);
+        },
+      });
+      setShowAlert(true);
     } catch (error) {
       console.error('Error adding soal:', error);
-      alert('Gagal menambahkan soal: ' + (error.response?.data?.message || error.message));
+      
+      // Show error alert
+      setAlertConfig({
+        type: 'error',
+        title: 'Gagal',
+        message: 'Gagal menambahkan soal: ' + (error.response?.data?.message || error.message),
+        confirmAction: null,
+      });
+      setShowAlert(true);
     }
   };
 
@@ -551,6 +609,22 @@ export default function TambahSoalPage() {
           </form>
         </div>
       </main>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={showAlert}
+        onClose={() => setShowAlert(false)}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        primaryButtonText="OK"
+        onPrimaryClick={() => {
+          setShowAlert(false);
+          if (alertConfig.confirmAction) {
+            alertConfig.confirmAction();
+          }
+        }}
+      />
     </div>
   );
 }

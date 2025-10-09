@@ -21,6 +21,8 @@ import Sidebar from '@/components/dashboard-admin/Sidebar';
 import AlertModal, { AlertType } from '@/components/ui/alert-modal';
 import { adminService, type Ujian } from '@/services/admin.service';
 import { ApiError } from '@/lib/api';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { 
   Search, 
   Plus, 
@@ -51,9 +53,26 @@ type AlertState = {
 const ITEMS_PER_PAGE = 7;
 
 export default function ExamManagementPage() {
+  // Auth guard - redirect if not admin
+  const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+  
   // CONFIGURATION: Toggle this to show/hide exam count card
   const showExamCountCard = true;
   const router = useRouter();
+
+  // Show loading spinner while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // This component will only render if user is authenticated as admin
+  if (!isAuthenticated) {
+    return null;
+  }
 
   // State management
   const [exams, setExams] = useState<Ujian[]>([]);

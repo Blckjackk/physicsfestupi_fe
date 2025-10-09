@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 import Sidebar from '@/components/dashboard-admin/Sidebar';
 import StatistikPeserta from '@/components/dashboard-admin/StatistikPeserta';
+import { useAdminGuard } from '@/hooks/useAuthGuard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -72,10 +74,27 @@ interface StatistikData {
 }
 
 export default function DashboardPage() {
+    // Auth guard - redirect if not admin
+    const { isLoading: authLoading, isAuthenticated } = useAdminGuard();
+    
     const [statistik, setStatistik] = React.useState<StatistikData | null>(null);
     const [peserta, setPeserta] = React.useState<Peserta[]>([]);
     const [isLoading, setIsLoading] = React.useState(true); // State untuk loading
     const [error, setError] = React.useState<string | null>(null); // State untuk error
+
+    // Show loading spinner while checking authentication
+    if (authLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
+
+    // This component will only render if user is authenticated as admin
+    if (!isAuthenticated) {
+        return null;
+    }
 
     React.useEffect(() => {
         const fetchData = async () => {
