@@ -514,7 +514,7 @@ function QuestionCard({
   onDelete: () => void;
 }) {
   // Get base URL for images
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   
   // Convert backend soal format to display format with images
   const opsiList = [
