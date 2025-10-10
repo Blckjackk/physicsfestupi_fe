@@ -199,7 +199,17 @@ export default function RichTextInput({
   // Update display when value changes from parent (only on load, not during typing)
   useEffect(() => {
     if (editableRef.current && !isComposing.current && !isUserTyping.current) {
-      const html = markdownToHtml(value);
+      // FIXED: Expect HTML from backend (new data), but support BBCode (old data) as fallback
+      // If value contains BBCode tags like [align-right], convert to HTML
+      const isBBCode = value && (
+        value.includes('[align-') || 
+        value.includes('[sup]') || 
+        value.includes('[sub]') || 
+        value.includes('[vector]') || 
+        value.includes('[frac]')
+      );
+      
+      const html = isBBCode ? markdownToHtml(value) : value;
       if (editableRef.current.innerHTML !== html) {
         editableRef.current.innerHTML = html || '';
       }
@@ -211,8 +221,8 @@ export default function RichTextInput({
     if (editableRef.current && !isComposing.current) {
       isUserTyping.current = true;
       const html = editableRef.current.innerHTML;
-      const markdown = htmlToMarkdown(html);
-      onChange(markdown);
+      // FIXED: Send raw HTML to backend, no conversion to markdown/BBCode
+      onChange(html);
       setTimeout(() => {
         isUserTyping.current = false;
       }, 100);

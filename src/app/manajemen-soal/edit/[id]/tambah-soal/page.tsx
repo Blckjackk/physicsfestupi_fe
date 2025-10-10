@@ -156,21 +156,18 @@ export default function TambahSoalPage() {
     }
   };
 
-  // Helper function for standard formatting (bold, italic)
-  const applyStandardFormatting = (elementId: string, command: string) => {
+  // Helper function for standard formatting with toggle state
+  const applyStandardFormatting = (elementId: string, formatType: string) => {
     const element = document.getElementById(elementId);
     if (!element) return;
 
+    // Focus element first to ensure it's active
     element.focus();
     
-    // Save cursor position before formatting
-    const selection = window.getSelection();
-    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const key = `${elementId}-${formatType}`;
     
-    const key = `${elementId}-${command}`;
-    
-    // Apply formatting
-    document.execCommand(command, false);
+    // Apply formatting directly - execCommand works on current selection
+    document.execCommand(formatType, false, undefined);
     
     // Toggle active state
     setActiveFormats(prev => ({
@@ -178,16 +175,7 @@ export default function TambahSoalPage() {
       [key]: !prev[key]
     }));
     
-    // Restore cursor position
-    if (range && selection) {
-      try {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      } catch (e) {
-        // Ignore if range is invalid
-      }
-    }
-    
+    // Trigger input event to sync state with RichTextInput
     element.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
@@ -292,8 +280,8 @@ export default function TambahSoalPage() {
         document.execCommand('subscript', false); 
         break;
       case 'vector':
-        // Insert vector placeholder and move cursor outside (like fraction)
-        const vectorHTML = '<span style="text-decoration: overline;">v</span>&nbsp;';
+        // Insert vector with data attribute for reliable CSS targeting
+        const vectorHTML = '<span class="physics-vector" style="text-decoration: overline; display: inline-block;">v</span>&nbsp;';
         document.execCommand('insertHTML', false, vectorHTML);
         
         // Move cursor after the vector
@@ -308,21 +296,22 @@ export default function TambahSoalPage() {
         }, 0);
         break;
       case 'fraction':
-        // Insert inline fraction template and place cursor after it
-        const fractionHTML = `<span style="display: inline-flex; flex-direction: column; vertical-align: middle; font-size: 0.85em; line-height: 1; margin: 0 1px;"><span contenteditable="true" style="border-bottom: 1px solid currentColor; padding: 0 3px; text-align: center;">a</span><span contenteditable="true" style="padding: 0 3px; text-align: center;">b</span></span>&nbsp;`;
+        // Insert inline fraction - keep contenteditable for child spans
+        const fractionHTML = `<span class="physics-fraction" style="display: inline-flex; flex-direction: column; vertical-align: middle; font-size: 0.85em; line-height: 1.2; margin: 0 3px; text-align: center;"><span contenteditable="true" style="border-bottom: 1px solid currentColor; padding: 2px 4px; text-align: center; display: block;">a</span><span contenteditable="true" style="padding: 2px 4px; text-align: center; display: block;">b</span></span>\u200B\u200B`;
         document.execCommand('insertHTML', false, fractionHTML);
         
-        // Move cursor after the fraction
+        // Move cursor after the zero-width spaces
         setTimeout(() => {
           const sel = window.getSelection();
           if (sel && sel.rangeCount > 0) {
             const range = sel.getRangeAt(0);
-            // Move cursor to after the space
+            // Collapse to end of current range (should be after zero-width spaces)
             range.collapse(false);
             sel.removeAllRanges();
             sel.addRange(range);
           }
-        }, 0);
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+        }, 10);
         break;
       default:
         return;
@@ -514,92 +503,65 @@ export default function TambahSoalPage() {
                 <label className="mb-3 block font-inter text-base font-semibold text-gray-900">
                   Soal
                 </label>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Editor */}
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Editor</p>
-                    <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all bg-white">
-                      {/* Toolbar at Top - Small Height */}
-                      <div className="flex items-center justify-center gap-0.5 border-b border-gray-200 bg-gray-50 px-2 py-1">
-                        <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('insertUnorderedList'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Bullet List">
-                          <span className="text-xs text-gray-700">⚏</span>
-                        </button>
-                        <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyLeft'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Left">
-                          <span className="text-xs text-gray-700">≡</span>
-                        </button>
-                        <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyCenter'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Center">
-                          <span className="text-xs text-gray-700">≣</span>
-                        </button>
-                        <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyRight'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Right">
-                          <span className="text-xs text-gray-700">☰</span>
-                        </button>
-                        <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyFull'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Justify">
-                          <span className="text-xs text-gray-700">⊞</span>
-                        </button>
-                        <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('indent'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Indent">
-                          <span className="text-xs text-gray-700">→</span>
-                        </button>
-                        <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('outdent'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Outdent">
-                          <span className="text-xs text-gray-700">←</span>
-                        </button>
-                        <div className="mx-0.5 h-4 w-px bg-gray-300"></div>
-                        <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('insertParagraph'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Paragraph">
-                          <span className="text-xs text-gray-700">P</span>
-                        </button>
-                        <button type="button" onClick={() => applyStandardFormatting('soal-input', 'bold')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-bold'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Bold">
-                          <span className="text-xs font-bold">B</span>
-                        </button>
-                        <button type="button" onClick={() => applyCustomFormatting('soal-input', 'h3', 'font-size: 1.125rem; font-weight: 600;')} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Heading">
-                          <span className="text-xs text-gray-700">H</span>
-                        </button>
-                        <button type="button" onClick={() => applyStandardFormatting('soal-input', 'italic')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-italic'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Italic">
-                          <span className="text-xs italic">I</span>
-                        </button>
-                        <div className="mx-0.5 h-4 w-px bg-gray-300"></div>
-                        <button type="button" onClick={() => applyPhysicsFormatting('soal-input', 'superscript')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-superscript'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Superscript (Pangkat)">
-                          <span className="text-xs font-semibold">x²</span>
-                        </button>
-                        <button type="button" onClick={() => applyPhysicsFormatting('soal-input', 'subscript')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-subscript'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Subscript">
-                          <span className="text-xs font-semibold">x₂</span>
-                        </button>
-                        <button type="button" onClick={() => applyPhysicsFormatting('soal-input', 'vector')} className="rounded p-1 text-gray-700 hover:bg-gray-200 transition-colors" title="Vector">
-                          <span className="text-xs font-semibold" style={{textDecoration: 'overline'}}>v</span>
-                        </button>
-                        <button type="button" onClick={() => applyPhysicsFormatting('soal-input', 'fraction')} className="rounded p-1 text-gray-700 hover:bg-gray-200 transition-colors" title="Fraction (Pecahan)">
-                          <span className="text-xs font-semibold">½</span>
-                        </button>
-                      </div>
-                      {/* Rich Text Input - Larger */}
-                      <RichTextInput
-                        id="soal-input"
-                        value={soal}
-                        onChange={setSoal}
-                        placeholder="Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin."
-                        className="min-h-[150px]"
-                      />
-                    </div>
+                <div className="rounded-lg border-2 border-gray-300 overflow-hidden focus-within:border-[#41366E] focus-within:ring-2 focus-within:ring-[#41366E]/20 transition-all bg-white">
+                  {/* Toolbar at Top - Small Height */}
+                  <div className="flex items-center justify-center gap-0.5 border-b border-gray-200 bg-gray-50 px-2 py-1">
+                    <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('insertUnorderedList'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Bullet List">
+                      <span className="text-xs text-gray-700">⚏</span>
+                    </button>
+                    <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyLeft'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Left">
+                      <span className="text-xs text-gray-700">≡</span>
+                    </button>
+                    <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyCenter'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Center">
+                      <span className="text-xs text-gray-700">≣</span>
+                    </button>
+                    <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyRight'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Align Right">
+                      <span className="text-xs text-gray-700">☰</span>
+                    </button>
+                    <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('justifyFull'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Justify">
+                      <span className="text-xs text-gray-700">⊞</span>
+                    </button>
+                    <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('indent'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Indent">
+                      <span className="text-xs text-gray-700">→</span>
+                    </button>
+                    <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('outdent'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Outdent">
+                      <span className="text-xs text-gray-700">←</span>
+                    </button>
+                    <div className="mx-0.5 h-4 w-px bg-gray-300"></div>
+                    <button type="button" onClick={() => { document.getElementById('soal-input')?.focus(); document.execCommand('insertParagraph'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Paragraph">
+                      <span className="text-xs text-gray-700">P</span>
+                    </button>
+                    <button type="button" onClick={() => applyStandardFormatting('soal-input', 'bold')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-bold'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Bold">
+                      <span className="text-xs font-bold">B</span>
+                    </button>
+                    <button type="button" onClick={() => applyCustomFormatting('soal-input', 'h3', 'font-size: 1.125rem; font-weight: 600;')} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Heading">
+                      <span className="text-xs text-gray-700">H</span>
+                    </button>
+                    <button type="button" onClick={() => applyStandardFormatting('soal-input', 'italic')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-italic'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Italic">
+                      <span className="text-xs italic">I</span>
+                    </button>
+                    <div className="mx-0.5 h-4 w-px bg-gray-300"></div>
+                    <button type="button" onClick={() => applyPhysicsFormatting('soal-input', 'superscript')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-superscript'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Superscript (Pangkat)">
+                      <span className="text-xs font-semibold">x²</span>
+                    </button>
+                    <button type="button" onClick={() => applyPhysicsFormatting('soal-input', 'subscript')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-subscript'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Subscript">
+                      <span className="text-xs font-semibold">x₂</span>
+                    </button>
+                    <button type="button" onClick={() => applyPhysicsFormatting('soal-input', 'vector')} className="rounded p-1 text-gray-700 hover:bg-gray-200 transition-colors" title="Vector">
+                      <span className="text-xs font-semibold" style={{textDecoration: 'overline'}}>v</span>
+                    </button>
+                    <button type="button" onClick={() => applyPhysicsFormatting('soal-input', 'fraction')} className="rounded p-1 text-gray-700 hover:bg-gray-200 transition-colors" title="Fraction (Pecahan)">
+                      <span className="text-xs font-semibold">½</span>
+                    </button>
                   </div>
-                  
-                  {/* Preview */}
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">Live Preview</p>
-                    <div className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4 min-h-[200px]">
-                      {soal ? (
-                        <div 
-                          className="prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ 
-                            __html: soal
-                              .replace(/\[sup\](.*?)\[\/sup\]/g, '<sup>$1</sup>')
-                              .replace(/\[sub\](.*?)\[\/sub\]/g, '<sub>$1</sub>')
-                              .replace(/\[vector\](.*?)\[\/vector\]/g, '<span style="position: relative;">$1<span style="position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-size: 0.8em;">→</span></span>')
-                              .replace(/\[frac\](.*?)\|(.*?)\[\/frac\]/g, '<span style="display: inline-block; text-align: center; vertical-align: middle;"><span style="display: block; border-bottom: 1px solid black; padding: 0 4px;">$1</span><span style="display: block; padding: 0 4px;">$2</span></span>')
-                          }}
-                        />
-                      ) : (
-                        <p className="text-gray-400 italic">Preview akan muncul di sini...</p>
-                      )}
-                    </div>
-                  </div>
+                  {/* Rich Text Input - Larger */}
+                  <RichTextInput
+                    id="soal-input"
+                    value={soal}
+                    onChange={setSoal}
+                    placeholder="Seorang siswa melakukan percobaan hukum Newton dengan cara menarik sebuah troli bermassa 4 kg menggunakan dinamometer di atas bidang datar licin."
+                    className="min-h-[150px]"
+                  />
                 </div>
               </div>                {/* Soal Gambar (Optional) - File Upload with Preview - Hide when Teks */}
                 <div style={{ display: tipeSoal === 'Teks' ? 'none' : 'block' }}>

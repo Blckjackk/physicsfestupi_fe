@@ -129,16 +129,13 @@ export default function EditSoalPage() {
     const element = document.getElementById(elementId);
     if (!element) return;
 
+    // Focus element first to ensure it's active
     element.focus();
-    
-    // Save cursor position before formatting
-    const selection = window.getSelection();
-    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
     
     const key = `${elementId}-${formatType}`;
     
-    // Apply formatting
-    document.execCommand(formatType, false);
+    // Apply formatting directly - execCommand works on current selection
+    document.execCommand(formatType, false, undefined);
     
     // Toggle active state
     setActiveFormats(prev => ({
@@ -146,16 +143,7 @@ export default function EditSoalPage() {
       [key]: !prev[key]
     }));
     
-    // Restore cursor position
-    if (range && selection) {
-      try {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      } catch (e) {
-        // Ignore if range is invalid
-      }
-    }
-    
+    // Trigger input event to sync state with RichTextInput
     element.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
@@ -257,8 +245,8 @@ export default function EditSoalPage() {
         document.execCommand('subscript', false); 
         break;
       case 'vector':
-        // Insert vector placeholder and move cursor outside (like fraction)
-        const vectorHTML = '<span style="text-decoration: overline;">v</span>&nbsp;';
+        // Insert vector with data attribute for reliable CSS targeting
+        const vectorHTML = '<span class="physics-vector" style="text-decoration: overline; display: inline-block;">v</span>&nbsp;';
         document.execCommand('insertHTML', false, vectorHTML);
         
         // Move cursor after the vector
@@ -273,21 +261,22 @@ export default function EditSoalPage() {
         }, 0);
         break;
       case 'fraction':
-        // Insert inline fraction template and place cursor after it
-        const fractionHTML = `<span style="display: inline-flex; flex-direction: column; vertical-align: middle; font-size: 0.85em; line-height: 1; margin: 0 1px;"><span contenteditable="true" style="border-bottom: 1px solid currentColor; padding: 0 3px; text-align: center;">a</span><span contenteditable="true" style="padding: 0 3px; text-align: center;">b</span></span>&nbsp;`;
+        // Insert inline fraction - keep contenteditable for child spans
+        const fractionHTML = `<span class="physics-fraction" style="display: inline-flex; flex-direction: column; vertical-align: middle; font-size: 0.85em; line-height: 1.2; margin: 0 3px; text-align: center;"><span contenteditable="true" style="border-bottom: 1px solid currentColor; padding: 2px 4px; text-align: center; display: block;">a</span><span contenteditable="true" style="padding: 2px 4px; text-align: center; display: block;">b</span></span>\u200B\u200B`;
         document.execCommand('insertHTML', false, fractionHTML);
         
-        // Move cursor after the fraction
+        // Move cursor after the zero-width spaces
         setTimeout(() => {
           const sel = window.getSelection();
           if (sel && sel.rangeCount > 0) {
             const range = sel.getRangeAt(0);
-            // Move cursor to after the space
+            // Collapse to end of current range (should be after zero-width spaces)
             range.collapse(false);
             sel.removeAllRanges();
             sel.addRange(range);
           }
-        }, 0);
+          element.dispatchEvent(new Event('input', { bubbles: true }));
+        }, 10);
         break;
       default:
         return;

@@ -43,3 +43,313 @@ span, div {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+/* ========================================
+   RICH TEXT FORMATTING STYLES
+   For displaying formatted content from editor
+   ======================================== */
+
+/* Formatted Text Container */
+.formatted-text {
+  line-height: 1.6;
+  color: #1f2937; /* gray-800 - default text color */
+}
+
+/* Ensure all child elements inherit the visible color */
+.formatted-text *,
+.formatted-text div,
+.formatted-text span {
+  color: inherit !important;
+}
+
+/* But preserve selected answer white text - use attribute selector instead of escaped brackets */
+[class*="bg-green"] .formatted-text *,
+.bg-green-600 .formatted-text * {
+  color: white !important;
+}
+
+/* Typography */
+.formatted-text b,
+.formatted-text strong {
+  font-weight: 700;
+}
+
+.formatted-text i,
+.formatted-text em {
+  font-style: italic;
+}
+
+.formatted-text u {
+  text-decoration: underline;
+}
+
+.formatted-text h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+/* Superscript & Subscript */
+.formatted-text sup {
+  vertical-align: super;
+  font-size: 0.75em;
+  line-height: 0;
+}
+
+.formatted-text sub {
+  vertical-align: sub;
+  font-size: 0.75em;
+  line-height: 0;
+}
+
+/* Lists */
+.formatted-text ul {
+  list-style-type: disc;
+  margin: 0.5rem 0;
+  padding-left: 2rem;
+}
+
+.formatted-text ol {
+  list-style-type: decimal;
+  margin: 0.5rem 0;
+  padding-left: 2rem;
+}
+
+.formatted-text li {
+  margin: 0.25rem 0;
+}
+
+/* Nested lists */
+.formatted-text ul ul,
+.formatted-text ol ul {
+  list-style-type: circle;
+  margin: 0.25rem 0;
+}
+
+.formatted-text ul ul ul,
+.formatted-text ol ol ul {
+  list-style-type: square;
+}
+
+/* Text Alignment */
+.formatted-text [style*="text-align: left"],
+.formatted-text div[align="left"] {
+  text-align: left !important;
+}
+
+.formatted-text [style*="text-align: center"],
+.formatted-text div[align="center"] {
+  text-align: center !important;
+}
+
+.formatted-text [style*="text-align: right"],
+.formatted-text div[align="right"] {
+  text-align: right !important;
+}
+
+.formatted-text [style*="text-align: justify"],
+.formatted-text div[align="justify"] {
+  text-align: justify !important;
+}
+
+/* Preserve alignment from execCommand */
+.formatted-text div[style*="text-align"] {
+  margin: 0.25rem 0;
+}
+
+/* Paragraphs */
+.formatted-text p {
+  margin: 0.5rem 0;
+}
+
+/* Line breaks */
+.formatted-text br {
+  display: block;
+  content: "";
+  margin: 0.25rem 0;
+}
+
+/* Inline elements */
+.formatted-text span {
+  display: inline;
+}
+
+/* Blockquote (if needed) */
+.formatted-text blockquote {
+  border-left: 3px solid #cbd5e0;
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  font-style: italic;
+  color: #718096;
+}
+
+/* Physics Equations Specific Styles */
+.formatted-text sup,
+.formatted-text sub {
+  position: relative;
+}
+
+/* Vector (overline) - Reliable class-based targeting */
+.formatted-text .physics-vector,
+.formatted-text span.physics-vector {
+  text-decoration: overline !important;
+  text-decoration-thickness: 1.5px !important;
+  text-decoration-color: currentColor !important;
+  display: inline-block !important;
+}
+
+/* Fraction styling - Vertical column layout */
+.formatted-text .physics-fraction,
+.formatted-text span.physics-fraction {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  vertical-align: middle !important;
+  font-size: 0.85em !important;
+  line-height: 1.2 !important;
+  margin: 0 3px !important;
+  text-align: center !important;
+}
+
+/* Fraction child spans (numerator and denominator) - MUST be block */
+.formatted-text .physics-fraction > span,
+.formatted-text span.physics-fraction > span {
+  display: block !important;
+  text-align: center !important;
+  padding: 2px 4px !important;
+  min-width: 2em !important;
+}
+
+/* Fraction border (between numerator and denominator) */
+.formatted-text .physics-fraction > span:first-child,
+.formatted-text span.physics-fraction > span:first-child {
+  border-bottom: 1px solid currentColor !important;
+  margin-bottom: 1px !important;
+}
+
+/* Indentation */
+.formatted-text [style*="margin-left"],
+.formatted-text blockquote {
+  margin-left: 2rem;
+}
+
+/* Preserve all inline styles for physics equations - styles pass through automatically */
+
+/* ========================================
+   CONTENTEDITABLE EDITOR STYLES
+   For live editing with formatting
+   ======================================== */
+
+/* Apply same styles to contenteditable for WYSIWYG */
+[contenteditable] b,
+[contenteditable] strong {
+  font-weight: 700;
+}
+
+[contenteditable] i,
+[contenteditable] em {
+  font-style: italic;
+}
+
+[contenteditable] u {
+  text-decoration: underline;
+}
+
+[contenteditable] h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  display: block;
+  margin: 0.5rem 0;
+}
+
+[contenteditable] sup {
+  vertical-align: super;
+  font-size: 0.75em;
+}
+
+[contenteditable] sub {
+  vertical-align: sub;
+  font-size: 0.75em;
+}
+
+[contenteditable] ul {
+  list-style-type: disc;
+  margin: 0.5rem 0;
+  padding-left: 2rem;
+}
+
+[contenteditable] ol {
+  list-style-type: decimal;
+  margin: 0.5rem 0;
+  padding-left: 2rem;
+}
+
+[contenteditable] li {
+  display: list-item;
+  margin: 0.25rem 0;
+}
+
+/* Text alignment in editor */
+[contenteditable] div[style*="text-align"] {
+  display: block;
+  margin: 0.25rem 0;
+}
+
+[contenteditable] [style*="text-align: left"] {
+  text-align: left !important;
+}
+
+[contenteditable] [style*="text-align: center"] {
+  text-align: center !important;
+}
+
+[contenteditable] [style*="text-align: right"] {
+  text-align: right !important;
+}
+
+[contenteditable] [style*="text-align: justify"] {
+  text-align: justify !important;
+}
+
+/* Vector in editor - Class-based for reliability */
+[contenteditable] .physics-vector,
+[contenteditable] span.physics-vector {
+  text-decoration: overline !important;
+  text-decoration-thickness: 1.5px !important;
+  text-decoration-color: currentColor !important;
+  display: inline-block !important;
+}
+
+/* Fraction in editor - Force vertical layout with flex column */
+[contenteditable] .physics-fraction,
+[contenteditable] span.physics-fraction {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  vertical-align: middle !important;
+  font-size: 0.85em !important;
+  line-height: 1.2 !important;
+  margin: 0 3px !important;
+  text-align: center !important;
+}
+
+/* Fraction child elements - MUST display as block for vertical stacking */
+[contenteditable] .physics-fraction > span,
+[contenteditable] span.physics-fraction > span {
+  display: block !important;
+  text-align: center !important;
+  padding: 2px 4px !important;
+  min-width: 2em !important;
+}
+
+/* Border for numerator (first child) */
+[contenteditable] .physics-fraction > span:first-child,
+[contenteditable] span.physics-fraction > span:first-child {
+  border-bottom: 1px solid currentColor !important;
+  margin-bottom: 1px !important;
+}
+
+/* Preserve focus within nested contenteditable (for fraction editing) */
+[contenteditable] [contenteditable="true"]:focus {
+  outline: 1px dashed rgba(99, 102, 241, 0.5);
+  outline-offset: 2px;
+  background-color: rgba(99, 102, 241, 0.05);
+}

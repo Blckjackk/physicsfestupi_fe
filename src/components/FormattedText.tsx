@@ -12,70 +12,34 @@ interface FormattedTextProps {
 }
 
 export default function FormattedText({ text, className = '' }: FormattedTextProps) {
-  // Function to parse and convert formatting tags to HTML
-  const parseFormatting = (input: string): string => {
-    // Handle null, undefined, or empty string
-    if (!input) return '';
-    
-    let output = input;
+  if (!text) return null;
 
-    // Bold: **text** → <strong>text</strong>
-    output = output.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-    // Italic: *text* → <em>text</em>
-    output = output.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
-
-    // Underline: __text__ → <u>text</u>
-    output = output.replace(/__(.*?)__/g, '<u>$1</u>');
-
-    // Heading: # text → <h3>text</h3>
-    output = output.replace(/^# (.+)$/gm, '<h3 class="text-lg font-bold mb-2">$1</h3>');
-
-    // Bullet point: • text → <li>text</li>
-    output = output.replace(/^• (.+)$/gm, '<li class="ml-4">$1</li>');
-
-    // Wrap consecutive <li> tags in <ul>
-    output = output.replace(/(<li.*?<\/li>[\s]*)+/g, '<ul class="list-disc list-inside mb-2">$&</ul>');
-
-    // Paragraph breaks: double newline (apply before single newline)
-    output = output.replace(/\n\n/g, '<br/><br/>');
-
-    // Single newline (but preserve structure for lists)
-    output = output.replace(/\n(?!<\/ul>)/g, '<br/>');
-
-    // Custom tags - Align Left
-    output = output.replace(/\[align-left\](.*?)\[\/align-left\]/g, '<div class="text-left">$1</div>');
-
-    // Custom tags - Align Center
-    output = output.replace(/\[align-center\](.*?)\[\/align-center\]/g, '<div class="text-center">$1</div>');
-
-    // Custom tags - Align Right
-    output = output.replace(/\[align-right\](.*?)\[\/align-right\]/g, '<div class="text-right">$1</div>');
-
-    // Custom tags - Justify
-    output = output.replace(/\[justify\](.*?)\[\/justify\]/g, '<div class="text-justify">$1</div>');
-
-    // Custom tags - Indent
-    output = output.replace(/\[indent\](.*?)\[\/indent\]/g, '<div class="ml-8">$1</div>');
-
-    // Custom tags - Outdent
-    output = output.replace(/\[outdent\](.*?)\[\/outdent\]/g, '<div class="ml-0">$1</div>');
-
-    // Custom tags - Color (example, you can enhance this)
-    output = output.replace(/\[color\](.*?)\[\/color\]/g, '<span class="text-purple-600">$1</span>');
-
-    // Custom tags - Script/Math notation (subscript example)
-    output = output.replace(/\[script\](.*?)\[\/script\]/g, '<sub>$1</sub>');
-
-    return output;
-  };
-
-  const formattedHtml = parseFormatting(text || '');
+  // Backend returns raw HTML from contenteditable
+  // Just render it directly - no conversion needed for new data
+  let processedText = text;
+  
+  // ONLY convert if contains BBCode tags (old data backward compatibility)
+  const hasBBCode = processedText.includes('[') && processedText.includes(']');
+  
+  if (hasBBCode) {
+    // Remove BBCode alignment tags - they're already converted to inline styles in new editor
+    processedText = processedText
+      .replace(/\[align-left\](.*?)\[\/align-left\]/g, '<div style="text-align: left;">$1</div>')
+      .replace(/\[align-center\](.*?)\[\/align-center\]/g, '<div style="text-align: center;">$1</div>')
+      .replace(/\[align-right\](.*?)\[\/align-right\]/g, '<div style="text-align: right;">$1</div>')
+      .replace(/\[justify\](.*?)\[\/justify\]/g, '<div style="text-align: justify;">$1</div>')
+      .replace(/\[sup\](.*?)\[\/sup\]/g, '<sup>$1</sup>')
+      .replace(/\[sub\](.*?)\[\/sub\]/g, '<sub>$1</sub>')
+      .replace(/\[vector\](.*?)\[\/vector\]/g, '<span style="text-decoration: overline;">$1</span>')
+      .replace(/\[frac\](.*?)\|(.*?)\[\/frac\]/g, '<span style="display: inline-flex; flex-direction: column; vertical-align: middle; font-size: 0.85em; line-height: 1; margin: 0 1px;"><span style="border-bottom: 1px solid currentColor; padding: 0 3px; text-align: center;">$1</span><span style="padding: 0 3px; text-align: center;">$2</span></span>')
+      .replace(/\[indent\](.*?)\[\/indent\]/g, '<div style="margin-left: 2rem;">$1</div>')
+      .replace(/\[outdent\](.*?)\[\/outdent\]/g, '<div style="margin-left: 0;">$1</div>');
+  }
 
   return (
     <div
       className={`formatted-text ${className}`}
-      dangerouslySetInnerHTML={{ __html: formattedHtml }}
+      dangerouslySetInnerHTML={{ __html: processedText }}
     />
   );
 }
