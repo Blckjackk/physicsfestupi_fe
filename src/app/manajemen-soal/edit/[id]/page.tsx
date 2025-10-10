@@ -82,7 +82,7 @@ export default function EditExamPage() {
         setUjian(null);
       }
     } catch (error) {
-      console.error('Failed to load ujian:', error);
+      // Failed to load ujian
       setUjian(null);
     } finally {
       setIsLoading(false);
@@ -126,7 +126,7 @@ export default function EditExamPage() {
       });
       setShowAlert(true);
     } catch (error) {
-      console.error('Failed to update ujian:', error);
+      // Failed to update ujian
       setAlertConfig({
         type: 'error',
         title: 'Error!',
@@ -389,7 +389,7 @@ function SoalUjianTab({
       const soalResponse = await adminService.getSoalByUjian(parseInt(examId));
       setQuestions(soalResponse);
     } catch (error) {
-      console.error('Failed to fetch soal:', error);
+      // Failed to fetch soal
       setQuestions([]);
     } finally {
       setIsLoading(false);
@@ -418,7 +418,7 @@ function SoalUjianTab({
       onSetShowAlert(true);
       loadQuestions(); // Refresh list
     } catch (error) {
-      console.error('Failed to delete soal:', error);
+      // Failed to delete soal
       onShowAlert({
         type: 'error' as AlertType,
         title: 'Error!',

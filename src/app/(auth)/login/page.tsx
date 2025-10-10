@@ -129,7 +129,7 @@ export default function LoginPage() {
       });
 
     } catch (error) {
-      console.error('Login error:', error);
+      // Login error occurred
       
       // Handle different error types from backend
       if (error instanceof ApiError) {

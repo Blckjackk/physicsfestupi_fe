@@ -80,7 +80,7 @@ export default function TambahSoalPage() {
       const soalList = await adminService.getSoalByUjian(parseInt(examId as string));
       setNextNomorSoal(soalList.length + 1);
     } catch (error) {
-      console.error('Failed to load exam data:', error);
+      // Failed to load exam data
     }
   };
 
@@ -211,15 +211,7 @@ export default function TambahSoalPage() {
     }
 
     try {
-      // Debug: Log file objects
-      console.log('Submitting with files:', {
-        media_soal: soalGambar ? 'File present' : 'No file',
-        opsi_a_media: gambarA ? 'File present' : 'No file',
-        opsi_b_media: gambarB ? 'File present' : 'No file',
-        opsi_c_media: gambarC ? 'File present' : 'No file',
-        opsi_d_media: gambarD ? 'File present' : 'No file',
-        opsi_e_media: gambarE ? 'File present' : 'No file',
-      });
+      // Validate files before submission
 
       // Create new soal via backend API with file upload support
       const result = await adminService.createSoal({
@@ -241,7 +233,7 @@ export default function TambahSoalPage() {
         jawaban_benar: jawabanBenar.toUpperCase(), // Backend expects uppercase
       });
 
-      console.log('Created soal result:', result);
+      // Soal created successfully
       
       // Show success alert
       setAlertConfig({
@@ -254,7 +246,7 @@ export default function TambahSoalPage() {
       });
       setShowAlert(true);
     } catch (error) {
-      console.error('Error adding soal:', error);
+      // Error adding soal
       
       // Show error alert
       setAlertConfig({

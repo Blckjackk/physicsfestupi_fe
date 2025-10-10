@@ -88,7 +88,7 @@ export default function ExamManagementPage() {
       const data = await adminService.getUjian();
       setExams(data);
     } catch (error) {
-      console.error('Failed to load exams:', error);
+      // Failed to load exams
       setAlert({
         show: true,
         type: 'error',
@@ -142,7 +142,7 @@ export default function ExamManagementPage() {
           await adminService.deleteUjian(Number(id));
           deletedCount++;
         } catch (err) {
-          console.error(`Failed to delete ujian ${id}:`, err);
+          // Failed to delete ujian
         }
       }
 
@@ -198,7 +198,7 @@ export default function ExamManagementPage() {
       });
       setShowAlert(true);
     } catch (error) {
-      console.error('Failed to delete ujian:', error);
+      // Failed to delete ujian
       setAlertConfig({
         type: 'error' as AlertType,
         title: 'Error!',
@@ -233,7 +233,7 @@ export default function ExamManagementPage() {
         message: 'Berhasil menambah ujian'
       });
     } catch (error) {
-      console.error('Failed to create ujian:', error);
+      // Failed to create ujian
       setAlert({
         show: true,
         type: 'error',

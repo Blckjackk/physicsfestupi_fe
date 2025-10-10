@@ -95,7 +95,7 @@ export default function LoginAdminPage() {
       });
 
     } catch (error) {
-      console.error('Login error:', error);
+      // Login error occurred
       
       if (error instanceof ApiError) {
         if (error.status === 401) {

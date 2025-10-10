@@ -217,7 +217,7 @@ export default function EditSoalPage() {
 
         setIsLoading(false);
       } catch (error) {
-        console.error('Error loading question data:', error);
+        // Error loading question data
         setIsLoading(false);
       }
     };
@@ -275,7 +275,7 @@ export default function EditSoalPage() {
       });
       setShowAlert(true);
     } catch (error) {
-      console.error('Error updating soal:', error);
+      // Error updating soal
       setAlertConfig({
         type: 'error',
         title: 'Error!',

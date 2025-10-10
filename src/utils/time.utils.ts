@@ -33,7 +33,7 @@ export function calculateExamDuration(startTime: string, endTime: string): strin
       return `${minutes} menit`;
     }
   } catch (error) {
-    console.error('Error calculating exam duration:', error);
+    // Error calculating exam duration
     return '1 jam 30 menit'; // fallback default
   }
 }
@@ -91,7 +91,7 @@ export function checkExamTimeWindow(startTime: string, endTime: string): {
       };
     }
   } catch (error) {
-    console.error('Error checking exam time window:', error);
+    // Error checking exam time window
     return {
       isValid: false,
       status: 'ended',

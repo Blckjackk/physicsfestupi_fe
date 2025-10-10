@@ -359,7 +359,7 @@ export default function DashboardPage() {
             setIsSuccessHapusPilihOpen(true);
 
         } catch (error: any) {
-            console.error('Error:', error);
+            // Error occurred
             alert(`Gagal: ${error.message}`);
         } finally {
             // Tutup dialog konfirmasi baik berhasil maupun gagal

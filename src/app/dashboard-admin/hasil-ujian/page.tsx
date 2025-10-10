@@ -195,7 +195,7 @@ export default function HasilUjian() {
             return true;
 
         } catch (error: any) {
-            console.error('Error:', error);
+            // Error occurred
             alert(`Gagal: ${error.message}`);
             return false;
         }
@@ -243,7 +243,7 @@ export default function HasilUjian() {
             setIsSuccessHapusPilihOpen(true);
 
         } catch (error: any) {
-            console.error('Error:', error);
+            // Error occurred
             alert(`Gagal: ${error.message}`);
             // Biarkan dialog konfirmasi terbuka jika gagal
         }

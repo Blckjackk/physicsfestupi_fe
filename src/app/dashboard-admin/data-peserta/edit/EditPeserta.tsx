@@ -69,7 +69,7 @@ export default function EditPeserta({ peserta, onEdit }: EditPesertaProps) {
                         setUjianOptions(result.data.ujian_dashboard || []);
                     }
                 } catch (error) {
-                    console.error("Gagal mengambil daftar ujian:", error);
+                    // Gagal mengambil daftar ujian
                 } finally {
                     setIsLoadingUjian(false);
                 }

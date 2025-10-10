@@ -56,7 +56,7 @@ export class ExamTimer {
         }
       }
     } catch (error) {
-      console.error('Failed to load timer state:', error);
+      // Failed to load timer state
     }
   }
 
@@ -74,7 +74,7 @@ export class ExamTimer {
       };
       localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      console.error('Failed to save timer state:', error);
+      // Failed to save timer state
     }
   }
 
@@ -188,7 +188,7 @@ export class ExamTimer {
     try {
       localStorage.removeItem(TIMER_STORAGE_KEY);
     } catch (error) {
-      console.error('Failed to clear timer state:', error);
+      // Failed to clear timer state
     }
   }
 

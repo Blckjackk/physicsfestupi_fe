@@ -142,7 +142,7 @@ export const adminService = {
             const jumlahSoal = soalResponse.data?.soal?.length || 0;
             return { ...ujian, jumlah_soal: jumlahSoal };
           } catch (error) {
-            console.error(`Failed to fetch soal count for ujian ${ujian.id}:`, error);
+            // Failed to fetch soal count
             return { ...ujian, jumlah_soal: 0 };
           }
         })
@@ -264,7 +264,7 @@ export const adminService = {
       formData.append('jawaban_benar', data.jawaban_benar);
 
       // Send as multipart/form-data using upload method
-      console.log('Sending FormData to /admin/soal with files...');
+      // Creating soal with file uploads
       const response = await api.upload<any>('/admin/soal', formData);
       return response.data.data;
     } else {
@@ -278,7 +278,7 @@ export const adminService = {
    * Update soal with file upload support
    */
   updateSoal: async (id: number, data: UpdateSoalRequest): Promise<Soal> => {
-    console.log('updateSoal called with data:', data);
+    // Updating soal with data
     
     // Always use FormData for update to handle potential file uploads
     const formData = new FormData();
@@ -294,44 +294,43 @@ export const adminService = {
     // Append media_soal if it's a File (only new uploads)
     if (data.media_soal instanceof File) {
       formData.append('media_soal', data.media_soal);
-      console.log('Appending media_soal file');
+      // Processing media_soal file
     }
     
     // Append opsi A-E with media (only new File objects)
     if (data.opsi_a) formData.append('opsi_a', data.opsi_a);
     if (data.opsi_a_media instanceof File) {
       formData.append('opsi_a_media', data.opsi_a_media);
-      console.log('Appending opsi_a_media file');
+      // Processing opsi_a_media file
     }
     
     if (data.opsi_b) formData.append('opsi_b', data.opsi_b);
     if (data.opsi_b_media instanceof File) {
       formData.append('opsi_b_media', data.opsi_b_media);  
-      console.log('Appending opsi_b_media file');
+      // Processing opsi_b_media file
     }
     
     if (data.opsi_c) formData.append('opsi_c', data.opsi_c);
     if (data.opsi_c_media instanceof File) {
       formData.append('opsi_c_media', data.opsi_c_media);
-      console.log('Appending opsi_c_media file');
+      // Processing opsi_c_media file
     }
     
     if (data.opsi_d) formData.append('opsi_d', data.opsi_d);
     if (data.opsi_d_media instanceof File) {
       formData.append('opsi_d_media', data.opsi_d_media);
-      console.log('Appending opsi_d_media file');
+      // Processing opsi_d_media file
     }
     
     if (data.opsi_e) formData.append('opsi_e', data.opsi_e);
     if (data.opsi_e_media instanceof File) {
       formData.append('opsi_e_media', data.opsi_e_media);
-      console.log('Appending opsi_e_media file');
+      // Processing opsi_e_media file
     }
 
     // Use upload method for multipart/form-data
-    console.log('Sending FormData to /admin/soal/' + id + ' with all fields...');
+    // Updating soal with FormData
     const response = await api.upload<any>(`/admin/soal/${id}`, formData);
-    console.log('Backend response:', response.data);
     return response.data.data || response.data;
   },
 

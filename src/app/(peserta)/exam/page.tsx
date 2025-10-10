@@ -99,7 +99,7 @@ export default function ExamPage() {
         
         setIsLoading(false);
       } catch (error: any) {
-        console.error('Failed to load exam session:', error);
+        // Failed to load exam session
         setIsLoading(false);
         
         // Handle different error types from backend
@@ -205,7 +205,7 @@ export default function ExamPage() {
         ujian_id: examSession.ujian.id,
       });
     } catch (error) {
-      console.error('Failed to save answer:', error);
+      // Failed to save answer
       // Don't show error to user, just log it
     }
   };
@@ -282,7 +282,7 @@ export default function ExamPage() {
         router.push('/confirmation');
       }, 2000);
     } catch (error) {
-      console.error('Failed to submit exam:', error);
+      // Failed to submit exam
       setAlertConfig({
         type: 'error',
         title: 'Gagal',

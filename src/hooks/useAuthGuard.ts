@@ -127,7 +127,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): AuthGuardState 
 
         } catch (apiError) {
           // Token invalid atau expired, logout dan redirect
-          console.error('Auth API validation failed:', apiError);
+          // Auth API validation failed
           authService.logout();
           
           setState({
@@ -145,7 +145,7 @@ export function useAuthGuard(options: UseAuthGuardOptions = {}): AuthGuardState 
         }
 
       } catch (error) {
-        console.error('Auth check error:', error);
+        // Auth check error
         // Fallback: logout dan redirect
         authService.logout();
         setState({
