@@ -61,7 +61,25 @@ export default function RichTextInput({
     // Color
     html = html.replace(/\[color\]([\s\S]*?)\[\/color\]/g, '<span style="color: rgb(147, 51, 234);">$1</span>');
 
-    // Script
+    // Script (subscript)
+    html = html.replace(/\[sub\]([\s\S]*?)\[\/sub\]/g, '<sub>$1</sub>');
+    
+    // Superscript (pangkat)
+    html = html.replace(/\[sup\]([\s\S]*?)\[\/sup\]/g, '<sup>$1</sup>');
+    
+    // Vector (dengan arrow)
+    html = html.replace(/\[vector\]([\s\S]*?)\[\/vector\]/g, '<span style="position: relative; display: inline-block;"><span>$1</span><span style="position: absolute; top: -2px; left: 0; right: 0; height: 1px; border-top: 1px solid currentColor; font-size: 0.8em;">→</span></span>');
+    
+    // Fraction (pecahan)
+    html = html.replace(/\[frac\]([\s\S]*?)\[\/frac\]/g, (match, content) => {
+      const parts = content.split('|');
+      if (parts.length === 2) {
+        return `<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; border-bottom: 1px solid currentColor; padding-bottom: 1px; font-size: 0.9em;">${parts[0]}</span><span style="display: block; padding-top: 1px; font-size: 0.9em;">${parts[1]}</span></span>`;
+      }
+      return content;
+    });
+
+    // Legacy script support
     html = html.replace(/\[script\]([\s\S]*?)\[\/script\]/g, '<sub>$1</sub>');
 
     // Line breaks
@@ -127,7 +145,19 @@ export default function RichTextInput({
     // Color
     markdown = markdown.replace(/<span style="color:\s*rgb\(147,\s*51,\s*234\);">([\s\S]*?)<\/span>/gi, '[color]$1[/color]');
 
-    // Script
+    // Subscript
+    markdown = markdown.replace(/<sub>(.*?)<\/sub>/gi, '[sub]$1[/sub]');
+    
+    // Superscript
+    markdown = markdown.replace(/<sup>(.*?)<\/sup>/gi, '[sup]$1[/sup]');
+    
+    // Vector (complex structure back to simple tag)
+    markdown = markdown.replace(/<span[^>]*><span>(.*?)<\/span><span[^>]*>→<\/span><\/span>/gi, '[vector]$1[/vector]');
+    
+    // Fraction (complex structure back to simple tag)
+    markdown = markdown.replace(/<span[^>]*><span[^>]*>(.*?)<\/span><span[^>]*>(.*?)<\/span><\/span>/gi, '[frac]$1|$2[/frac]');
+
+    // Legacy script support
     markdown = markdown.replace(/<sub>(.*?)<\/sub>/gi, '[script]$1[/script]');
 
     // Clean up extra tags

@@ -44,6 +44,9 @@ export default function EditSoalPage() {
   const [jawabanBenar, setJawabanBenar] = useState('A');
   const [isLoading, setIsLoading] = useState(true);
   
+  // Formatting states for toggle buttons
+  const [activeFormats, setActiveFormats] = useState<{[key: string]: boolean}>({});
+  
   // Alert modal states
   const [showAlert, setShowAlert] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
@@ -119,6 +122,179 @@ export default function EditSoalPage() {
       // Trigger input event to update state
       element.dispatchEvent(new Event('input', { bubbles: true }));
     }
+  };
+
+  // Helper function for standard formatting with toggle state
+  const applyStandardFormatting = (elementId: string, formatType: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    element.focus();
+    
+    // Save cursor position before formatting
+    const selection = window.getSelection();
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    
+    const key = `${elementId}-${formatType}`;
+    
+    // Apply formatting
+    document.execCommand(formatType, false);
+    
+    // Toggle active state
+    setActiveFormats(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+    
+    // Restore cursor position
+    if (range && selection) {
+      try {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } catch (e) {
+        // Ignore if range is invalid
+      }
+    }
+    
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  // Helper function for physics formatting with toggle mode and active state
+  const applyPhysicsFormatting = (elementId: string, formatType: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    element.focus();
+    const key = `${elementId}-${formatType}`;
+    const isCurrentlyActive = activeFormats[key];
+    
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    
+    const range = selection.getRangeAt(0);
+    
+    // For superscript/subscript - check if we're inside one and handle toggle off
+    if (formatType === 'superscript' || formatType === 'subscript') {
+      let node = range.startContainer.parentElement;
+      let formattedNode = null;
+      
+      // Find the SUP/SUB parent
+      while (node && node !== element) {
+        if ((formatType === 'superscript' && node.tagName === 'SUP') ||
+            (formatType === 'subscript' && node.tagName === 'SUB')) {
+          formattedNode = node;
+          break;
+        }
+        node = node.parentElement;
+      }
+      
+      if (formattedNode && isCurrentlyActive) {
+        // We're toggling OFF - insert zero-width space after the formatted node to break out
+        const zeroWidthSpace = document.createTextNode('\u200B');
+        formattedNode.parentNode?.insertBefore(zeroWidthSpace, formattedNode.nextSibling);
+        
+        // Move cursor to after the zero-width space
+        const newRange = document.createRange();
+        newRange.setStartAfter(zeroWidthSpace);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+        
+        // Toggle off the button
+        setActiveFormats(prev => ({ ...prev, [key]: false }));
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+    }
+    
+    // For vector - similar handling
+    if (formatType === 'vector') {
+      let node = range.startContainer.parentElement;
+      let vectorNode = null;
+      
+      // Find the overline span parent
+      while (node && node !== element) {
+        if (node.tagName === 'SPAN' && node.style.textDecoration === 'overline') {
+          vectorNode = node;
+          break;
+        }
+        node = node.parentElement;
+      }
+      
+      if (vectorNode && isCurrentlyActive) {
+        // We're toggling OFF - insert zero-width space after the vector node
+        const zeroWidthSpace = document.createTextNode('\u200B');
+        vectorNode.parentNode?.insertBefore(zeroWidthSpace, vectorNode.nextSibling);
+        
+        // Move cursor to after the zero-width space
+        const newRange = document.createRange();
+        newRange.setStartAfter(zeroWidthSpace);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+        
+        // Toggle off the button
+        setActiveFormats(prev => ({ ...prev, [key]: false }));
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+    }
+    
+    // Toggle active state - for button styling
+    setActiveFormats(prev => ({
+      ...prev,
+      [key]: !isCurrentlyActive,
+      // Turn off conflicting formats
+      ...(formatType === 'superscript' && { [`${elementId}-subscript`]: false }),
+      ...(formatType === 'subscript' && { [`${elementId}-superscript`]: false })
+    }));
+    
+    switch (formatType) {
+      case 'superscript':
+        document.execCommand('superscript', false);
+        break;
+      case 'subscript':
+        document.execCommand('subscript', false); 
+        break;
+      case 'vector':
+        // Insert vector placeholder and move cursor outside (like fraction)
+        const vectorHTML = '<span style="text-decoration: overline;">v</span>&nbsp;';
+        document.execCommand('insertHTML', false, vectorHTML);
+        
+        // Move cursor after the vector
+        setTimeout(() => {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }, 0);
+        break;
+      case 'fraction':
+        // Insert inline fraction template and place cursor after it
+        const fractionHTML = `<span style="display: inline-flex; flex-direction: column; vertical-align: middle; font-size: 0.85em; line-height: 1; margin: 0 1px;"><span contenteditable="true" style="border-bottom: 1px solid currentColor; padding: 0 3px; text-align: center;">a</span><span contenteditable="true" style="padding: 0 3px; text-align: center;">b</span></span>&nbsp;`;
+        document.execCommand('insertHTML', false, fractionHTML);
+        
+        // Move cursor after the fraction
+        setTimeout(() => {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            // Move cursor to after the space
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }, 0);
+        break;
+      default:
+        return;
+    }
+
+    // Trigger input event to update state
+    element.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
   // Helper function for input fields (not textarea) - LEGACY
@@ -421,14 +597,27 @@ export default function EditSoalPage() {
                     <button type="button" onClick={() => { document.getElementById('soal-input-edit')?.focus(); document.execCommand('insertParagraph'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Paragraph">
                       <span className="text-xs text-gray-700">P</span>
                     </button>
-                    <button type="button" onClick={() => { document.getElementById('soal-input-edit')?.focus(); document.execCommand('bold'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Bold">
-                      <span className="text-xs font-bold text-gray-700">B</span>
+                    <button type="button" onClick={() => applyStandardFormatting('soal-input-edit', 'bold')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-edit-bold'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Bold">
+                      <span className="text-xs font-bold">B</span>
                     </button>
                     <button type="button" onClick={() => applyCustomFormatting('soal-input-edit', 'h3', 'font-size: 1.125rem; font-weight: 600;')} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Heading">
                       <span className="text-xs text-gray-700">H</span>
                     </button>
-                    <button type="button" onClick={() => { document.getElementById('soal-input-edit')?.focus(); document.execCommand('italic'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Italic">
-                      <span className="text-xs italic text-gray-700">I</span>
+                    <button type="button" onClick={() => applyStandardFormatting('soal-input-edit', 'italic')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-edit-italic'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Italic">
+                      <span className="text-xs italic">I</span>
+                    </button>
+                    <div className="mx-0.5 h-4 w-px bg-gray-300"></div>
+                    <button type="button" onClick={() => applyPhysicsFormatting('soal-input-edit', 'superscript')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-edit-superscript'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Superscript (Pangkat)">
+                      <span className="text-xs font-semibold">x²</span>
+                    </button>
+                    <button type="button" onClick={() => applyPhysicsFormatting('soal-input-edit', 'subscript')} className={`rounded p-1 transition-colors ${activeFormats['soal-input-edit-subscript'] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Subscript">
+                      <span className="text-xs font-semibold">x₂</span>
+                    </button>
+                    <button type="button" onClick={() => applyPhysicsFormatting('soal-input-edit', 'vector')} className="rounded p-1 text-gray-700 hover:bg-gray-200 transition-colors" title="Vector">
+                      <span className="text-xs font-semibold" style={{textDecoration: 'overline'}}>v</span>
+                    </button>
+                    <button type="button" onClick={() => applyPhysicsFormatting('soal-input-edit', 'fraction')} className="rounded p-1 text-gray-700 hover:bg-gray-200 transition-colors" title="Fraction (Pecahan)">
+                      <span className="text-xs font-semibold">½</span>
                     </button>
                   </div>
                   {/* Rich Text Input - Larger */}
@@ -552,14 +741,27 @@ export default function EditSoalPage() {
                           <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('insertParagraph'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Paragraph">
                             <span className="text-xs text-gray-700">P</span>
                           </button>
-                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('bold'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Bold">
-                            <span className="text-xs font-bold text-gray-700">B</span>
+                          <button type="button" onClick={() => applyStandardFormatting(`jawaban-${option.label}`, 'bold')} className={`rounded p-1 transition-colors ${activeFormats[`jawaban-${option.label}-bold`] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Bold">
+                            <span className="text-xs font-bold">B</span>
                           </button>
                           <button type="button" onClick={() => applyCustomFormatting(`jawaban-${option.label}`, 'h3', 'font-size: 1.125rem; font-weight: 600;')} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Heading">
                             <span className="text-xs text-gray-700">H</span>
                           </button>
-                          <button type="button" onClick={() => { document.getElementById(`jawaban-${option.label}`)?.focus(); document.execCommand('italic'); }} className="rounded p-1 hover:bg-gray-200 transition-colors" title="Italic">
-                            <span className="text-xs italic text-gray-700">I</span>
+                          <button type="button" onClick={() => applyStandardFormatting(`jawaban-${option.label}`, 'italic')} className={`rounded p-1 transition-colors ${activeFormats[`jawaban-${option.label}-italic`] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Italic">
+                            <span className="text-xs italic">I</span>
+                          </button>
+                          <div className="mx-0.5 h-4 w-px bg-gray-300"></div>
+                          <button type="button" onClick={() => applyPhysicsFormatting(`jawaban-${option.label}`, 'superscript')} className={`rounded p-1 transition-colors ${activeFormats[`jawaban-${option.label}-superscript`] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Superscript (Pangkat)">
+                            <span className="text-xs font-semibold">x²</span>
+                          </button>
+                          <button type="button" onClick={() => applyPhysicsFormatting(`jawaban-${option.label}`, 'subscript')} className={`rounded p-1 transition-colors ${activeFormats[`jawaban-${option.label}-subscript`] ? 'bg-blue-500 text-white border-2 border-blue-600' : 'text-gray-700 hover:bg-gray-200'}`} title="Subscript">
+                            <span className="text-xs font-semibold">x₂</span>
+                          </button>
+                          <button type="button" onClick={() => applyPhysicsFormatting(`jawaban-${option.label}`, 'vector')} className="rounded p-1 text-gray-700 hover:bg-gray-200 transition-colors" title="Vector">
+                            <span className="text-xs font-semibold" style={{textDecoration: 'overline'}}>v</span>
+                          </button>
+                          <button type="button" onClick={() => applyPhysicsFormatting(`jawaban-${option.label}`, 'fraction')} className="rounded p-1 text-gray-700 hover:bg-gray-200 transition-colors" title="Fraction (Pecahan)">
+                            <span className="text-xs font-semibold">½</span>
                           </button>
                         </div>
                         {/* Rich Text Input - Larger */}
