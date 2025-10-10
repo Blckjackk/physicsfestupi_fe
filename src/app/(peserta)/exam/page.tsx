@@ -350,7 +350,7 @@ export default function ExamPage() {
   const answeredQuestions = Object.keys(answers).map(Number);
   
   // Get base URL for images
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  const API_BASE_URL = 'https://api.physicstournament11.site/' || 'http://localhost:8000';
   
   // Convert question data to expected format for QuestionCard
   const questionOptions = [
